@@ -1,0 +1,105 @@
+---
+name: mapmap-migrate-from-mapbox
+description: Migrate a Mapbox GL JS / Directions API application to MapMap — endpoint and token mapping, style migration to MapLibre, what ports unchanged, what MapMap adds (truck/ADR, self-host) and what it does not offer.
+---
+
+# Migrating from Mapbox to MapMap
+
+MapMap's routing endpoint is OSRM-compatible and its guidance output is
+Mapbox-shaped, so most Mapbox routing clients port with a URL and token swap.
+The map side moves from Mapbox GL JS to MapLibre GL JS (the API-compatible
+open-source fork), which `@mapmap/maps` wraps.
+
+Reasons teams move: self-hosting (same stack on your own hardware, air-gap
+capable), truck routing with ADR dangerous-goods compliance (Mapbox has no
+ADR product), a free tier without a card (50,000 calls/month, commercial use
+allowed), and an agent-native machine surface (MCP, llms.txt, x402).
+
+## Token → key
+
+Mapbox `pk.…` tokens become MapMap `snk_` keys, self-served in one call:
+
+```sh
+curl -fsS -X POST "https://api.mapmap.ai/v1/keys" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com", "accept_tos": true}'
+```
+
+Send as `Authorization: Bearer snk_…` (preferred) or `?api_key=snk_…` for
+URL-only contexts (style URLs, tile URLs) — the analogue of Mapbox's
+`?access_token=`.
+
+## Endpoint mapping
+
+| Mapbox | MapMap | Notes |
+| --- | --- | --- |
+| `GET /directions/v5/mapbox/{profile}/{coords}` | `GET /route/v1/{profile}/{coords}` | Same OSRM shape: `lon,lat;lon,lat`, `distance` metres, `duration` seconds, encoded polyline. Profiles: `driving`, `truck`, `bus`, `bicycle`, `walking`, `scooter`, `motorcycle` |
+| `voice_instructions=true&banner_instructions=true` | same parameters | Output is Mapbox-shaped: `voiceInstructions` (incl. SSML) and `bannerInstructions` (incl. lane diagrams) — existing consumers work |
+| `GET /directions-matrix/v1/…` | `POST /matrix` | JSON body, `durations` seconds / `distances` metres, `null` = unreachable |
+| `GET /isochrone/v1/…` | `POST /isochrone` | GeoJSON contours |
+| `GET /matching/v5/…` | `POST /trace_route`, `POST /trace_attributes` | Map matching |
+| `GET /geocoding/v5/…` | `GET /geocode`, `GET /geocode/reverse` | Photon-backed; response shape differs — this is the one endpoint needing client changes |
+| `GET /optimized-trips/v1/…` | `POST /optimise` | Multi-vehicle VRP; truck/ADR constraints shape the plan |
+| Mapbox Styles API | `POST /styles`, `GET /styles/{id}.json` | Versioned, immutable publishes; theme documents instead of raw style edits |
+| `mapbox://` tile URLs | `GET /tiles/{territory}/{z}/{x}/{y}.mvt` + `/tiles/{territory}/style.json` | Standard XYZ over HTTPS, TileJSON 3.0 |
+
+What MapMap does **not** offer: server-side static/raster map images (clients
+render vector tiles), Mapbox's global POI search stack, and worldwide hosted
+tile coverage on day one — hosted coverage is territory-based (check
+`GET /territories`); self-host covers anywhere you build.
+
+## Map rendering: Mapbox GL JS → MapLibre
+
+MapLibre GL JS is the drop-in fork (same `Map`, `Marker`, `Popup`, style-spec
+v8). Swap the packages and delete the token global:
+
+```diff
+- import mapboxgl from "mapbox-gl";
+- mapboxgl.accessToken = "pk.…";
+- const map = new mapboxgl.Map({ container: "map", style: "mapbox://styles/mapbox/streets-v12" });
++ import maplibregl from "maplibre-gl";
++ const map = new maplibregl.Map({
++   container: "map",
++   style: "https://api.mapmap.ai/tiles/uk/style.json?api_key=snk_…",
++ });
+```
+
+Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,
+`NavigationCamera`) for routing and turn-by-turn wired in — see the
+`mapmap-web-maps-integration` skill.
+
+Custom Mapbox styles: MapLibre reads style-spec v8, but `mapbox://` source
+URLs, Mapbox fonts and sprites must be repointed. The pragmatic path is
+recreating the look as a MapMap theme (17 palette slots + per-layer
+overrides) in [Studio](https://mapmap.ai/studio) — or let an agent do it via
+the MCP style tools (`list_style_layers`, `create_style`, `set_palette`,
+`set_layer_paint`).
+
+## What you gain in the swap
+
+- **Truck & ADR routing**: dimensional limits and dangerous-goods tunnel
+  codes enforced in costing — parameters Mapbox Directions does not have
+  (see the `mapmap-truck-adr-routing` skill).
+- **Self-host**: the identical stack (gateway, engine, geocoder, MCP server)
+  from one Docker Compose file, with signed offline territory packages.
+- **Machine surface**: `/llms.txt`, `/openapi.json`, `/pricing.json`,
+  one-call keys, x402 machine payments, MCP at `https://mcp.mapmap.ai/mcp`.
+
+## Billing differences to encode
+
+Two price classes detected per request: standard (car/bike/pedestrian
+routing, matrix, isochrone, matching, geocoding — from 0.05p/call) and
+premium (anything truck/ADR — from 1p/call, drawing 20 included calls from
+the free tier). Prepaid credit only: no credit means `402`/`429`, never
+surprise billing. A 4xx-answered request is never charged. Machine-readable:
+`https://mapmap.ai/pricing.json`.
+
+## Attribution
+
+Mapbox required its logo + OSM credit; MapMap requires
+"© OpenStreetMap contributors" (compiled styles carry it structurally).
+Remove Mapbox wordmark assets during the migration, keep the OSM credit.
+
+Full API reference: https://mapmap.ai/docs/api-reference (append `.md` for
+raw markdown); conventions (units, errors, quotas):
+https://mapmap.ai/docs/conventions.

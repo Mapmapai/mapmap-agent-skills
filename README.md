@@ -1,5 +1,9 @@
 # MapMap Agent Skills
 
+[![Skills](https://img.shields.io/badge/skills-10-2563eb)](https://mapmap.ai/docs/skills)
+[![MCP server](https://img.shields.io/badge/MCP-mcp.mapmap.ai-2563eb)](https://mapmap.ai/docs/mcp)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](./LICENSE)
+
 Knowledge modules that teach AI coding agents how to build with
 [MapMap](https://mapmap.ai) — the self-hostable navigation platform for
 fleets and AI agents.
@@ -41,7 +45,11 @@ mkdir -p .claude && ln -s ../mapmap-agent-skills/skills .claude/skills
 | `mapmap-truck-adr-routing` | Truck routing with dimensional limits and ADR dangerous-goods tunnel codes — parameters, semantics, gotchas |
 | `mapmap-web-maps-integration` | `@mapmap/maps` in web apps — maps, routing, turn-by-turn guidance, navigation camera, Studio themes |
 | `mapmap-map-design` | Designing branded map styles — brand → 17-slot palette ("make maps like airbnb.com"), legibility rules, publishing immutable styles |
+| `mapmap-fleet-optimisation` | Multi-vehicle VRP — vehicles, jobs, shipments, time windows, capacities, truck/ADR constraints in the matrix, the 200-location cap |
+| `mapmap-offline-territories` | Offline maps — signed territory packages, verifying-key pinning, differential OTA updates, the download allowance |
 | `mapmap-migrate-from-mapbox` | Moving a Mapbox GL / Directions API app to MapMap — endpoint mapping, tokens to keys, style migration |
+| `mapmap-migrate-from-google-maps` | Moving a Google Maps Platform app to MapMap — Routes/Matrix/Geocoding mapping, what ports and what has no replacement |
+| `mapmap-x402-payments` | How agents pay per call — 402 vs 429 dispatch, prepaid credit, inline x402 where configured, refund and polling rules |
 | `mapmap-self-host-ops` | Running the whole stack yourself — Docker Compose distro, keys, territories, production notes |
 
 ## The machine surface

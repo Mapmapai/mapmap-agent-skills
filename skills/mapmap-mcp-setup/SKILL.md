@@ -5,7 +5,8 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes ten tools: routing, ADR dangerous-goods
+MapMap's MCP server (`sn-mcp`) exposes eleven tools (the set grows — list
+them live with `tools/list`): routing, along-route search, ADR dangerous-goods
 compliance, geocoding, travel matrices, multi-vehicle route optimisation and
 map styling. Full JSON Schemas and structured outputs — a model can call it
 correctly first try.
@@ -78,6 +79,7 @@ url = "https://mcp.mapmap.ai/mcp"
 | `geocode` | Forward geocoding: `{query, limit?, focus?}` |
 | `matrix` | Many-to-many travel matrix: `durations_s[i][j]` seconds, `distances_m[i][j]` metres, `null` = unreachable |
 | `optimise_routes` | Multi-vehicle VRP with truck/ADR constraints; fair-use cap 200 unique locations |
+| `search_along_route` | Stops from the API key's own uploaded places dataset along a route, ranked by honest detour cost (real added driving time, engine-measured). Needs a gateway key with a places dataset |
 | `list_style_layers` | Palette slots, skeleton layer ids and source-layers a theme can restyle — local, no network |
 | `get_style` | Fetch a hosted style's theme document and compiled style URL (public read) |
 | `create_style` / `set_palette` / `set_layer_paint` | Create and restyle hosted maps — each publish is a new immutable version, metered |
@@ -108,6 +110,7 @@ helpfully:
 | `PHOTON_URL` | `geocode` |
 | `STUDIO_URL` | style tools (the gateway hosting the style API) |
 | `STUDIO_API_KEY` | style publishes only (`snk_` key); reads work without it |
+| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route` (falls back to the `STUDIO_*` pair — same gateway) |
 
 Run from the self-host distro (`docker compose --profile mcp up -d`, default
 port 8200, path `/mcp`) or build from source (`cargo build --release -p sn-mcp`).

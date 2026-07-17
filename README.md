@@ -40,6 +40,7 @@ mkdir -p .claude && ln -s ../mapmap-agent-skills/skills .claude/skills
 | `mapmap-mcp-setup` | Connecting any MCP client to MapMap — hosted endpoint, self-host, per-client config, tool reference |
 | `mapmap-truck-adr-routing` | Truck routing with dimensional limits and ADR dangerous-goods tunnel codes — parameters, semantics, gotchas |
 | `mapmap-web-maps-integration` | `@mapmap/maps` in web apps — maps, routing, turn-by-turn guidance, navigation camera, Studio themes |
+| `mapmap-map-design` | Designing branded map styles — brand → 17-slot palette ("make maps like airbnb.com"), legibility rules, publishing immutable styles |
 | `mapmap-migrate-from-mapbox` | Moving a Mapbox GL / Directions API app to MapMap — endpoint mapping, tokens to keys, style migration |
 | `mapmap-self-host-ops` | Running the whole stack yourself — Docker Compose distro, keys, territories, production notes |
 

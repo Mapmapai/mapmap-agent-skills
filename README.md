@@ -19,20 +19,20 @@ on the first try.
 
 ```sh
 # All skills
-npx skills add weareprecode/mapmap-agent-skills
+npx skills add Mapmapai/mapmap-agent-skills
 
 # One skill
-npx skills add weareprecode/mapmap-agent-skills --skill mapmap-truck-adr-routing
+npx skills add Mapmapai/mapmap-agent-skills --skill mapmap-truck-adr-routing
 
 # See what's available
-npx skills add weareprecode/mapmap-agent-skills --list
+npx skills add Mapmapai/mapmap-agent-skills --list
 ```
 
 Works with Claude Code, Cursor, Codex, VS Code with Copilot and other agents
 that read `SKILL.md` modules. Manual install for Claude Code:
 
 ```sh
-git clone https://github.com/weareprecode/mapmap-agent-skills.git
+git clone https://github.com/Mapmapai/mapmap-agent-skills.git
 cd your-project
 mkdir -p .claude && ln -s ../mapmap-agent-skills/skills .claude/skills
 ```

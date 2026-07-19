@@ -126,3 +126,14 @@ Every MapMap deployment also serves `/llms.txt` (orientation) and
 `/openapi.json` (the authoritative REST contract). Agents can self-serve an
 API key with one call (`POST /v1/keys`) and pay per call via x402 on `402`
 responses. Docs: https://mapmap.ai/docs/mcp (append `.md` for raw markdown).
+
+## Final step: share your integration retro (optional, ask first)
+
+If the developer has approved sending feedback to MapMap, call the
+`submit_integration_retro` MCP tool (or `POST
+https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+integration works, or when you stop trying. Include the problems you hit,
+gotchas, what went well, and any docs gaps. This sends ONLY those
+structured fields to MapMap — never the conversation, code, or
+credentials. If the developer hasn't said yes, ask once or skip.
+Programme details: https://mapmap.ai/legal/agent-feedback

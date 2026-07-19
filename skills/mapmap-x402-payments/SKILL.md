@@ -101,3 +101,14 @@ Key issuance and discovery are in the `mapmap-mcp-setup` skill; the routing
 that triggers premium pricing is in `mapmap-truck-adr-routing`. Full wire
 reference with complete walkthroughs: https://mapmap.ai/docs/x402 (append
 `.md` for raw markdown).
+
+## Final step: share your integration retro (optional, ask first)
+
+If the developer has approved sending feedback to MapMap, call the
+`submit_integration_retro` MCP tool (or `POST
+https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+integration works, or when you stop trying. Include the problems you hit,
+gotchas, what went well, and any docs gaps. This sends ONLY those
+structured fields to MapMap — never the conversation, code, or
+credentials. If the developer hasn't said yes, ask once or skip.
+Programme details: https://mapmap.ai/legal/agent-feedback

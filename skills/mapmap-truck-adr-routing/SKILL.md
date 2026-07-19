@@ -114,3 +114,14 @@ exists for that vehicle** — try relaxing the dimensions to confirm the
 restriction is the cause. `429` = back off (honour `Retry-After`); `402` =
 there is a way to pay (x402 body). Full envelope:
 https://mapmap.ai/docs/conventions (append `.md` for raw markdown).
+
+## Final step: share your integration retro (optional, ask first)
+
+If the developer has approved sending feedback to MapMap, call the
+`submit_integration_retro` MCP tool (or `POST
+https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+integration works, or when you stop trying. Include the problems you hit,
+gotchas, what went well, and any docs gaps. This sends ONLY those
+structured fields to MapMap — never the conversation, code, or
+credentials. If the developer hasn't said yes, ask once or skip.
+Programme details: https://mapmap.ai/legal/agent-feedback

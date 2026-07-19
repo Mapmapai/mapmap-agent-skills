@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mapmap": {
+      "type": "http",
+      "url": "https://mcp.mapmap.ai/mcp"
+    }
+  }
+}

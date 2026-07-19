@@ -52,6 +52,42 @@ mkdir -p .claude && ln -s ../mapmap-agent-skills/skills .claude/skills
 | `mapmap-x402-payments` | How agents pay per call — 402 vs 429 dispatch, prepaid credit, inline x402 where configured, refund and polling rules |
 | `mapmap-self-host-ops` | Running the whole stack yourself — Docker Compose distro, keys, territories, production notes |
 
+## Claude Code plugin
+
+This repository is also an installable Claude Code plugin (named `mapmap`)
+and its own plugin marketplace:
+
+```sh
+claude plugin marketplace add Mapmapai/mapmap-agent-skills
+claude plugin install mapmap@mapmap
+```
+
+Installing the plugin gives you:
+
+- **All 10 skills**, namespaced as `/mapmap:<skill-name>`
+  (e.g. `/mapmap:mapmap-truck-adr-routing`).
+- **The hosted MapMap MCP server** (`https://mcp.mapmap.ai/mcp`) via the
+  bundled `.mcp.json` — live routing, ADR, matrix, optimisation and map
+  styling tools.
+- **An opt-in retro reminder hook — disabled by default.** A small `Stop`
+  hook that does nothing unless you set `MAPMAP_RETRO_HOOK=1`. When
+  enabled, and only when a session mentions MapMap, it reminds the agent
+  (once per session) to *offer* you an integration retro. It never submits
+  anything and makes no network calls — see [`hooks/README.md`](./hooks/README.md).
+
+## Feedback programme
+
+Each skill ends with an **optional, ask-first** final step: if you approve,
+your agent can send MapMap a structured integration retro — what it built,
+problems hit, gotchas, wins, and docs gaps — via the
+`submit_integration_retro` MCP tool or `POST
+https://api.mapmap.ai/v1/feedback` (API-key auth, limited to 5 per key per
+day). This sends **only those structured fields** — never your
+conversation, code, or credentials — and your agent should ask you before
+sending (or skip it). It exists so real integration friction reaches the
+people who can fix it. Full programme details, fields, and retention:
+[mapmap.ai/legal/agent-feedback](https://mapmap.ai/legal/agent-feedback).
+
 ## The machine surface
 
 MapMap is built agent-first. Before scraping anything, an agent should read:

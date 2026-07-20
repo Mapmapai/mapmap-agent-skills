@@ -1,7 +1,7 @@
 {
   "name": "mapmap",
   "description": "MapMap navigation platform for AI agents — 10 integration skills (routing, truck/ADR, web maps, map design, fleet optimisation, offline, self-host, x402 payments, migrations) plus the hosted MapMap MCP server. Includes an opt-in, consent-first integration-retro reminder hook (disabled by default).",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "MapMap",
     "email": "hello@mapmap.ai",

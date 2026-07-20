@@ -55,10 +55,14 @@ programmatically from the `list_style_layers` MCP tool.
    keep `textSecondary` clearly above 3:1. If you tint text with the brand
    hue, tint it barely.
 6. **Match the type.** `fonts.regular` must stay on a bundled fontstack —
-   `Noto Sans Regular` (default), `Inter Regular`, `Open Sans Regular`,
-   `Source Sans 3 Regular`, `Lato Regular` or `Montserrat Regular` — or
+   `Noto Sans Regular` (default), `Noto Sans Bold`, `Noto Sans Italic`,
+   `Barlow Regular`, `Fira Sans Regular`, `IBM Plex Sans Regular`,
+   `Inter Regular`, `Lato Regular`, `Montserrat Regular`,
+   `Noto Serif Regular`, `Nunito Regular`, `Open Sans Regular`,
+   `Rubik Regular`, `Source Sans 3 Regular` or `Work Sans Regular` — or
    labels drop entirely. Pick the closest to the brand's face (geometric
-   brand → Montserrat; neutral product UI → Inter).
+   brand → Montserrat; neutral product UI → Inter; editorial/serif brand
+   → Noto Serif; bolder wayfinding look → Noto Sans Bold).
 
 ## Worked example: "make maps like airbnb.com"
 

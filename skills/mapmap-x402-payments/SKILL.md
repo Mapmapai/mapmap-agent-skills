@@ -15,11 +15,17 @@ decision tree an agent must implement.
    `Authorization: Bearer snk_…`; without it you get a `401` regardless of
    any payment header. Keys are self-served in one call (`POST /v1/keys`).
 2. **Honest status:** the gateway implements the x402 standard server-side.
-   Whether a deployment *accepts* inline x402 payments depends on operator
+   The hosted gateway at `https://api.mapmap.ai` accepts x402 on mainnet
+   (since 20 July 2026): its 402s advertise USDC payment requirements on
+   Base and Solana in one `accepts` array, and a stock x402 client settles
+   per-call or buys a prepaid bundle at `POST /v1/x402/topup`. Whether a
+   *self-hosted* deployment accepts inline x402 payments depends on operator
    configuration — unconfigured deployments are "x402-ready": the `402`
    keeps the same wire shape with an empty `accepts` array and points you
    at prepaid credit. **Prepaid Stripe credit is the settlement rail that
-   works on every deployment.**
+   works on every deployment.** Discovery manifest:
+   `https://mapmap.ai/.well-known/x402.json` (always pay against a fresh
+   402, never against the static manifest).
 
 ## Dispatch on status, never on strings
 

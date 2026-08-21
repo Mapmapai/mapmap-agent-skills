@@ -5,15 +5,15 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes thirty-two tools (the set grows fast —
+MapMap's MCP server (`sn-mcp`) exposes thirty-three tools (the set grows fast —
 it was eleven in June — so list them live with `tools/list` rather than
 trusting any written count, including this one): routing, along-route search,
 cheapest fuel on a route, day planning, reachability, elevation, nearby
 places, forward and reverse geocoding, place verification, ADR dangerous-goods
 compliance, travel matrices, multi-vehicle route optimisation, map correction,
-integration feedback, map styling and ten no-network geometry helpers. Full
-JSON Schemas and structured outputs, so a model can call it correctly first
-try.
+integration feedback, map styling, coordinate-system validation and ten
+no-network geometry helpers. Full JSON Schemas and structured outputs, so
+a model can call it correctly first try.
 
 ## The hosted endpoint (fastest path)
 
@@ -104,6 +104,7 @@ url = "https://mcp.mapmap.ai/mcp"
 | `get_style` | Fetch a hosted style's theme document and compiled style URL (public read) |
 | `check_style_contrast` | WCAG 2.1 contrast audit of a style's palette, across both light and dark variants. Advisory: it never blocks a publish |
 | `create_style` / `set_palette` / `set_layer_paint` | Create and restyle hosted maps — each publish is a new immutable version, metered |
+| `validate_geodata` | Checks whether a dataset's DECLARED coordinate reference system actually describes its own coordinates, before you draw it. Catches the silent failures: swapped lat/lon axes, degrees labelled as metres, Web Mercator mislabelled with a UTM or national-grid code. Pass the declared CRS and a sample of raw coordinates as `{x, y}` in the dataset's OWN units — deliberately not `lon`/`lat`, because whether they are degrees is the question. Returns `consistent` / `suspect` / `impossible`, what is wrong in plain language, and where the numbers actually point read another way. A sanity check, never a reprojection. Local, no network, no quota |
 | `geo_distance` / `geo_bearing` / `geo_destination` / `geo_point_in_polygon` / `geo_bbox` / `geo_centroid` / `geo_length` / `geo_area` / `geo_simplify` / `geo_nearest_point_on_line` | Ten pure-computation geometry helpers over the coordinates you supply: no network, no upstream to fail, instant. `geo_distance` is straight-line, **not** driving distance — use `route` or `matrix` for travel time and distance. `geo_simplify`'s `tolerance_deg` is in degrees, not metres |
 
 Conventions across all tools: coordinates are named `{lat, lon}` objects
@@ -136,9 +137,9 @@ helpfully:
 | `SN_MAP_ISSUES_DIR` | `report_map_issue` review queue |
 | `SN_RETROS_DIR` | `submit_integration_retro` fallback queue when the gateway cannot take it |
 
-The ten `geo_*` tools and `check_adr_tunnel`, `list_style_layers` and
-`check_style_contrast` need no upstream at all: they compute locally and
-cannot fail on a network.
+The ten `geo_*` tools and `check_adr_tunnel`, `list_style_layers`,
+`check_style_contrast` and `validate_geodata` need no upstream at all:
+they compute locally and cannot fail on a network.
 
 Run from the self-host distro (`docker compose --profile mcp up -d`, default
 port 8200, path `/mcp`) or build from source (`cargo build --release -p sn-mcp`).

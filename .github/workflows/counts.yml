@@ -1,0 +1,78 @@
+name: counts
+
+# These skills are what an agent reads *before* it calls anything, so a stale
+# number here is worse than a stale number in marketing copy: it shapes what
+# the agent believes is possible. `mapmap-mcp-setup` said eleven tools when
+# there were thirty-two, and `mapmap-map-design` said seventeen palette slots
+# when there were nineteen.
+#
+# This repo cannot see crates/sn-mcp/src/server.rs, so it asks the deployed
+# server the same way an agent would — initialize, then tools/list — and
+# compares that against the count written in the skill.
+#
+# A network failure is a skip, not a failure: this is a docs repo and a red
+# tick from someone else's outage teaches nobody anything. Only a genuine
+# disagreement between the skill and the server fails the job.
+
+on:
+  pull_request:
+  schedule:
+    - cron: "23 6 * * 1" # Mondays, after the week's changes have landed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tool-count:
+    name: skills agree with the live server
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MCP_URL: https://mcp.mapmap.ai/mcp
+    steps:
+      - uses: actions/checkout@v4
+      - name: Written count vs tools/list
+        run: |
+          set -uo pipefail
+          H='Content-Type: application/json'
+          A='Accept: application/json, text/event-stream'
+
+          INIT=$(curl -fsS -i --max-time 20 -X POST "$MCP_URL" -H "$H" -H "$A" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"skills-counts","version":"1"}}}') || {
+              echo "::notice::could not reach $MCP_URL — skipping (network, not drift)"; exit 0; }
+          SID=$(printf '%s' "$INIT" | tr -d '\r' | awk 'tolower($1)=="mcp-session-id:"{print $2}')
+          [ -n "$SID" ] || { echo "::notice::no session id — skipping"; exit 0; }
+          curl -fsS --max-time 20 -X POST "$MCP_URL" -H "$H" -H "$A" -H "Mcp-Session-Id: $SID" \
+            -d '{"jsonrpc":"2.0","method":"notifications/initialized"}' > /dev/null
+
+          LIVE=$(curl -fsS --max-time 20 -X POST "$MCP_URL" -H "$H" -H "$A" -H "Mcp-Session-Id: $SID" \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | grep '^data: {' | head -1 | grep -o '"name":"[a-z_]*"' | sort -u | wc -l)
+          LIVE=$((LIVE))
+          [ "$LIVE" -gt 0 ] || { echo "::notice::tools/list returned nothing — skipping"; exit 0; }
+
+          # The skill spells the number out; map the words we might use back to
+          # digits rather than trying to parse English in general.
+          WRITTEN=$(sed -n 's/.*exposes \([a-z-]*\) tools.*/\1/p' skills/mapmap-mcp-setup/SKILL.md | head -1)
+          case "$WRITTEN" in
+            eleven) N=11 ;; twelve) N=12 ;; thirteen) N=13 ;; fourteen) N=14 ;;
+            fifteen) N=15 ;; sixteen) N=16 ;; seventeen) N=17 ;; eighteen) N=18 ;;
+            nineteen) N=19 ;; twenty) N=20 ;;
+            twenty-one) N=21 ;; twenty-two) N=22 ;; twenty-three) N=23 ;;
+            twenty-four) N=24 ;; twenty-five) N=25 ;; twenty-six) N=26 ;;
+            twenty-seven) N=27 ;; twenty-eight) N=28 ;; twenty-nine) N=29 ;;
+            thirty) N=30 ;; thirty-one) N=31 ;; thirty-two) N=32 ;;
+            thirty-three) N=33 ;; thirty-four) N=34 ;; thirty-five) N=35 ;;
+            *) echo "::error::could not read the tool count from skills/mapmap-mcp-setup/SKILL.md (found '$WRITTEN'); the wording changed and this check needs updating"; exit 1 ;;
+          esac
+
+          echo "skill says $N ($WRITTEN); live server serves $LIVE"
+          if [ "$N" -ne "$LIVE" ]; then
+            echo "::error::mapmap-mcp-setup says $N tools, the live server serves $LIVE. Update the skill's opening line and its tool-reference table."
+            exit 1
+          fi
+
+          ROWS=$(grep -c '^| `' skills/mapmap-mcp-setup/SKILL.md)
+          echo "tool-reference table rows: $ROWS (grouped rows cover several tools, so this is a floor, not an equality)"
+          [ "$ROWS" -ge 15 ] || { echo "::error::the tool-reference table has collapsed to $ROWS rows"; exit 1; }

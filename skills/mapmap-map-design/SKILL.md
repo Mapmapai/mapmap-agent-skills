@@ -1,6 +1,6 @@
 ---
 name: mapmap-map-design
-description: Design branded map styles on MapMap — translate a brand ("make maps like airbnb.com") into the 17-slot theme palette, keep labels legible, use layer overrides with restraint, and publish immutable hosted styles via the style API or MCP style tools.
+description: Design branded map styles on MapMap — translate a brand ("make maps like airbnb.com") into the 19-slot theme palette, keep labels legible, use layer overrides with restraint, and publish immutable hosted styles via the style API or MCP style tools.
 ---
 
 # Designing branded maps with MapMap
@@ -23,13 +23,15 @@ packages, so a theme renders identically everywhere.
 }
 ```
 
-## The instrument: 17 palette slots
+## The instrument: 19 palette slots
 
 `base` is `light` or `dark`; slots you don't set keep sensible defaults, so
 **change as few slots as possible**. Surfaces: `background`, `water`,
-`waterway`, `landcover`, `landuse`, `park`, `building`, `aeroway`. Lines:
-`road`, `roadMajor`, `path`, `rail`, `boundary`, `boundaryMinor`. Text:
-`textPrimary`, `textSecondary`, `textHalo`. Colours accept
+`waterway`, `landcover`, `landuse`, `park`, `ice`, `building`, `aeroway`.
+Lines: `road`, `roadMajor`, `roadMotorway`, `path`, `rail`, `boundary`,
+`boundaryMinor`. Text: `textPrimary`, `textSecondary`, `textHalo`.
+`roadMotorway` inherits `roadMajor` until you set it explicitly, so
+recolouring `roadMajor` alone still moves the motorways. Colours accept
 `#rgb`/`#rrggbb`/`#rrggbbaa` and `rgb()`/`hsl()` forms. Get the catalogue
 programmatically from the `list_style_layers` MCP tool.
 

@@ -105,7 +105,7 @@ migrate the rest — the two APIs coexist fine.
 The container `div` needs an explicit CSS height or the map renders blank
 (Google's renderer had the same requirement). `InfoWindow` becomes
 `maplibregl.Popup`. Google's cloud-based map styling becomes a MapMap theme
-(17 palette slots + per-layer overrides) built in
+(19 palette slots + per-layer overrides) built in
 [Studio](https://mapmap.ai/studio) or via the MCP style tools
 (`list_style_layers`, `create_style`, `set_palette`, `set_layer_paint`).
 Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,

@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mapmap",
   "version": "0.1.1",
-  "description": "MapMap navigation platform for AI agents — 10 integration skills (routing, truck/ADR compliance, web maps, map design, fleet optimisation, offline territories, self-host ops, x402 payments, Mapbox/Google migrations) plus the hosted MapMap MCP server.",
+  "description": "MapMap navigation platform for AI agents — 11 integration skills (routing, truck/ADR compliance, web maps, map design, fleet optimisation, telematics fleet sync, offline territories, self-host ops, x402 payments, Mapbox/Google migrations) plus the hosted MapMap MCP server.",
   "author": {
     "name": "MapMap",
     "email": "hello@mapmap.ai",

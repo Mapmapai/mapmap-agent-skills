@@ -5,7 +5,7 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes thirty-three tools (the set grows fast —
+MapMap's MCP server (`sn-mcp`) exposes thirty-nine tools (the set grows fast —
 it was eleven in June — so list them live with `tools/list` rather than
 trusting any written count, including this one): routing, along-route search,
 cheapest fuel on a route, day planning, reachability, elevation, nearby

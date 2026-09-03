@@ -64,7 +64,13 @@ jobs:
             twenty-seven) N=27 ;; twenty-eight) N=28 ;; twenty-nine) N=29 ;;
             thirty) N=30 ;; thirty-one) N=31 ;; thirty-two) N=32 ;;
             thirty-three) N=33 ;; thirty-four) N=34 ;; thirty-five) N=35 ;;
-            *) echo "::error::could not read the tool count from skills/mapmap-mcp-setup/SKILL.md (found '$WRITTEN'); the wording changed and this check needs updating"; exit 1 ;;
+            thirty-six) N=36 ;; thirty-seven) N=37 ;; thirty-eight) N=38 ;;
+            thirty-nine) N=39 ;; forty) N=40 ;;
+            forty-one) N=41 ;; forty-two) N=42 ;; forty-three) N=43 ;;
+            forty-four) N=44 ;; forty-five) N=45 ;; forty-six) N=46 ;;
+            forty-seven) N=47 ;; forty-eight) N=48 ;; forty-nine) N=49 ;;
+            fifty) N=50 ;;
+            *) echo "::error::could not read the tool count from skills/mapmap-mcp-setup/SKILL.md (found '$WRITTEN'); either the wording changed, or the count has grown past fifty and this case list needs extending"; exit 1 ;;
           esac
 
           echo "skill says $N ($WRITTEN); live server serves $LIVE"

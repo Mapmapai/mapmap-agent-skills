@@ -1,6 +1,6 @@
 # MapMap Agent Skills
 
-[![Skills](https://img.shields.io/badge/skills-10-2563eb)](https://mapmap.ai/docs/skills)
+[![Skills](https://img.shields.io/badge/skills-11-2563eb)](https://mapmap.ai/docs/skills)
 [![MCP server](https://img.shields.io/badge/MCP-mcp.mapmap.ai-2563eb)](https://mapmap.ai/docs/mcp)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](./LICENSE)
 
@@ -46,6 +46,7 @@ mkdir -p .claude && ln -s ../mapmap-agent-skills/skills .claude/skills
 | `mapmap-web-maps-integration` | `@mapmap/maps` in web apps — maps, routing, turn-by-turn guidance, navigation camera, Studio themes |
 | `mapmap-map-design` | Designing branded map styles — brand → 19-slot palette ("make maps like airbnb.com"), legibility rules, publishing immutable styles |
 | `mapmap-fleet-optimisation` | Multi-vehicle VRP — vehicles, jobs, shipments, time windows, capacities, truck/ADR constraints in the matrix, the 200-location cap |
+| `mapmap-fleet-sync` | The morning-dispatch loop against a telematics platform you already run — read today's stops and vehicles, geocode and sanity-check, optimise, write the ordered route back or export it, then follow it live with the stateless progress endpoint |
 | `mapmap-offline-territories` | Offline maps — signed territory packages, verifying-key pinning, differential OTA updates, the download allowance |
 | `mapmap-migrate-from-mapbox` | Moving a Mapbox GL / Directions API app to MapMap — endpoint mapping, tokens to keys, style migration |
 | `mapmap-migrate-from-google-maps` | Moving a Google Maps Platform app to MapMap — Routes/Matrix/Geocoding mapping, what ports and what has no replacement |
@@ -64,7 +65,7 @@ claude plugin install mapmap@mapmap
 
 Installing the plugin gives you:
 
-- **All 10 skills**, namespaced as `/mapmap:<skill-name>`
+- **All 11 skills**, namespaced as `/mapmap:<skill-name>`
   (e.g. `/mapmap:mapmap-truck-adr-routing`).
 - **The hosted MapMap MCP server** (`https://mcp.mapmap.ai/mcp`) via the
   bundled `.mcp.json` — live routing, ADR, matrix, optimisation and map

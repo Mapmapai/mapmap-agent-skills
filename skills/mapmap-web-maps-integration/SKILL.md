@@ -7,7 +7,10 @@ description: Build web maps and turn-by-turn navigation with @mapmap/maps — in
 
 `@mapmap/maps` is a thin TypeScript wrapper over MapLibre GL JS with MapMap
 tiles, styles, routing and navigation UI wired in. ESM only, Node ≥ 18 to
-build. Peers: `maplibre-gl` ≥ 4 < 6, `pmtiles` ≥ 3 < 5.
+build. Version 0.12.0. Peers: `maplibre-gl` `>=5.0.0 <7.0.0` (MapLibre GL
+JS 5 and 6; 4.x is not supported), `pmtiles` `>=3.0.0 <5.0.0`. MapLibre 6
+requires **WebGL 2** and has no WebGL 1 fallback, so an environment without
+one gets the `[webgl-unavailable]` diagnostic and no map.
 
 ```sh
 npm install @mapmap/maps maplibre-gl pmtiles
@@ -16,11 +19,37 @@ npm install @mapmap/maps maplibre-gl pmtiles
 You need an `snk_` API key — issue one card-free:
 `POST https://api.mapmap.ai/v1/keys {"email": "...", "accept_tos": true}`.
 
-## The two gotchas that make maps silently blank
+## The three gotchas that make maps silently blank
 
-1. **The container must have a real height** — `<div id="map" style="height: 480px">`.
+1. **The container must have a real height**: `<div id="map" style="height: 480px">`.
    Without it the map renders zero pixels tall and the page looks blank.
-2. **Import MapLibre's stylesheet** — `import "maplibre-gl/dist/maplibre-gl.css"`.
+2. **Import MapLibre's stylesheet**: `import "maplibre-gl/dist/maplibre-gl.css"`.
+   It is unlayered, so on Tailwind v4 `.maplibregl-map { position: relative }`
+   beats layered `absolute`/`inset-0` and collapses the container.
+3. **MapLibre 6 + Turbopack: call `setWorkerUrl` before the first map.**
+   MapLibre 6 ships its worker as a separate ES module resolved from
+   `import.meta.url`. Where the bundler cannot rewrite that URL, and Turbopack
+   cannot, you get no tiles and **nothing logged at all**: no console error, no
+   `error` event, no failed request. Serve **both** files (the worker imports
+   the shared chunk, so serving the worker alone fails the same silent way):
+
+   ```sh
+   mkdir -p public/vendor/maplibre
+   cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/vendor/maplibre/
+   cp node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/vendor/maplibre/
+   ```
+
+   ```ts
+   import * as maplibregl from "maplibre-gl";
+   maplibregl.setWorkerUrl("/vendor/maplibre/maplibre-gl-worker.mjs");
+   ```
+
+   `setWorkerUrl` does not exist on MapLibre 5, so feature-detect it if you
+   support both majors:
+   `(maplibregl as { setWorkerUrl?: (u: string) => void }).setWorkerUrl?.(url)`.
+   The SDK deliberately does not wrap this: the host owns what it serves.
+   A page that loads MapLibre from a real https URL (CDN plus import map) needs
+   none of this.
 
 ## Map + truck route
 
@@ -109,14 +138,33 @@ Agents can create/restyle hosted styles through the MCP style tools.
 
 ## Tiles and styles without the SDK
 
-Raw MapLibre works too — point it at a compiled style URL:
+Raw MapLibre works too: point it at a compiled style URL. MapLibre GL JS 6 is
+**ESM-only**. There is no UMD build and no `maplibregl` browser global, and the
+package has **no default export**, so import the namespace:
 
-```js
+```ts
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
 new maplibregl.Map({
   container: "map",
   style: "https://api.mapmap.ai/tiles/uk/style.json?api_key=snk_…",
   center: [-1.5, 52.6], zoom: 6,
 });
+```
+
+In a plain HTML page with no bundler, use an import map and a module script.
+Never `<script src=".../dist/maplibre-gl.js">`, which 6.x does not ship:
+
+```html
+<link href="https://unpkg.com/maplibre-gl@6.9.0/dist/maplibre-gl.css" rel="stylesheet" />
+<script type="importmap">
+  { "imports": { "maplibre-gl": "https://unpkg.com/maplibre-gl@6.9.0/dist/maplibre-gl.mjs" } }
+</script>
+<script type="module">
+  import * as maplibregl from "maplibre-gl";
+  new maplibregl.Map({ container: "map", style: "…", center: [-1.5, 52.6], zoom: 6 });
+</script>
 ```
 
 The `?api_key=` query form exists for URL-only contexts like style URLs. Style

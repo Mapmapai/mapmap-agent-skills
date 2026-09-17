@@ -11,7 +11,7 @@
       "name": "mapmap",
       "source": "./",
       "description": "MapMap navigation platform for AI agents — 11 integration skills, the hosted MapMap MCP server, and an opt-in integration-retro reminder hook (disabled by default).",
-      "version": "0.1.1",
+      "version": "0.1.3",
       "author": {
         "name": "MapMap"
       },

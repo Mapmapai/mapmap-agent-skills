@@ -5,14 +5,17 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes thirty-nine tools (the set grows fast —
+MapMap's MCP server (`sn-mcp`) exposes forty-three tools (the set grows fast —
 it was eleven in June — so list them live with `tools/list` rather than
 trusting any written count, including this one): routing, along-route search,
-cheapest fuel on a route, day planning, reachability, elevation, nearby
-places, forward and reverse geocoding, place verification, ADR dangerous-goods
-compliance, travel matrices, multi-vehicle route optimisation, map correction,
-integration feedback, map styling, coordinate-system validation and ten
-no-network geometry helpers. Full JSON Schemas and structured outputs, so
+cheapest fuel on a route, EV journey planning and charge points, overhead
+clearance against survey data, GPS trace matching, day planning, reachability,
+elevation, nearby places and their category vocabulary, forward and reverse
+geocoding, place verification, ADR dangerous-goods compliance, travel matrices,
+multi-vehicle route optimisation with stop clustering, mid-shift re-planning
+and an asynchronous lane for oversized problems, quota reporting, map
+correction, integration feedback, map styling, coordinate-system validation and
+ten no-network geometry helpers. Full JSON Schemas and structured outputs, so
 a model can call it correctly first try.
 
 ## The hosted endpoint (fastest path)
@@ -105,6 +108,16 @@ url = "https://mcp.mapmap.ai/mcp"
 | `check_style_contrast` | WCAG 2.1 contrast audit of a style's palette, across both light and dark variants. Advisory: it never blocks a publish |
 | `create_style` / `set_palette` / `set_layer_paint` | Create and restyle hosted maps — each publish is a new immutable version, metered |
 | `validate_geodata` | Checks whether a dataset's DECLARED coordinate reference system actually describes its own coordinates, before you draw it. Catches the silent failures: swapped lat/lon axes, degrees labelled as metres, Web Mercator mislabelled with a UTM or national-grid code. Pass the declared CRS and a sample of raw coordinates as `{x, y}` in the dataset's OWN units — deliberately not `lon`/`lat`, because whether they are degrees is the question. Returns `consistent` / `suspect` / `impossible`, what is wrong in plain language, and where the numbers actually point read another way. A sanity check, never a reprojection. Local, no network, no quota |
+| `plan_ev_route` | A whole electric-vehicle journey with its charge stops: consumption from a published road-load physics model over the route's own legs, and charge times integrated over the vehicle's charging curve rather than energy divided by peak power. `feasible: false` with a `reason` and the furthest reachable point is an ANSWER, not an error to retry. Always show the returned `coverage_note`. Needs a gateway |
+| `cheapest_charging_along_route` | Charge points along a route, ranked most powerful first, each carrying its engine-measured detour; filter by `connectors`, `min_kw`, `available_only` and `max_detour_minutes`. Operator-published feeds only, so an empty result means "none from these operators within the detour budget", never "there are no chargers here": show the `coverage_note`. Needs a gateway |
+| `check_clearance_on_route` | A vehicle's overhead clearance measured along a truck-costed route against surveyed point-cloud geometry: `pass`, `fail`, `indeterminate` or `no_verdict` with the limiting point, the measured headroom and its uncertainty bound. Measured geometry from a dated survey, never a posted or signed height, so `clearance_enforcement.route_certified` is always false and the caveat rides on every answer. Needs a gateway |
+| `match_trace` | Snaps a recorded GPS trace (2 to 2,000 points, or a polyline6 string) onto the road network and says what it actually travelled over: roll-ups `by_road_class`, `by_admin` and `by_surface`, plus toll, bridge and tunnel totals. Pass the `costing` it was driven under, or a walk matched as `auto` snaps to the carriageway. Needs a gateway |
+| `cluster` | Groups up to 5,000 stops into balanced geographic clusters so a day too large for one optimisation can be solved cluster by cluster, then `optimise_routes` per cluster. STRAIGHT-LINE distances, no road network consulted: right for deciding which stops belong together, wrong for deciding visiting order. Show the returned `basis`. Same `seed` gives the same clusters. Needs a gateway |
+| `replan_routes` | Re-plans a fleet part-way through its shift. MapMap holds no dispatch state, so you send the original `optimise_routes` problem back in full plus `progress` and/or `changes`; completed stops are removed from the problem entirely rather than hinted at, so the solver cannot move them. Read the `replan` block: anything dropped or unresolved is named there. Needs a gateway |
+| `submit_optimise_job` | The asynchronous lane for a problem too large to solve inside one request. `kind` is `optimise`, `replan` or `matrix` and `problem` takes exactly the synchronous tool's input. Ceilings are far higher: 2,000 unique locations against 200, 40,000 matrix elements against 10,000. Answers a job id, not a plan. Needs a gateway |
+| `get_job` | Reads a job submitted with `submit_optimise_job`: `queued`, `running`, `succeeded` or `failed`, with the result inline once it finishes. Poll every few seconds while `terminal` is false. Polling is free: the gateway meters the submission, not the reads. Needs a gateway |
+| `get_usage` | What your own key has spent, so you can decide mid-task whether to keep going: per-day and per-endpoint figures, month used against quota, and the prepaid balance. Counted in weighted quota UNITS, never a number of calls. Free to read, and only ever reports on the key that authenticates the call. Needs a gateway |
+| `list_place_categories` | The canonical `category` tokens for `nearby_places` and `search_along_route`, each with its colloquial aliases and a one-line description. Read it before guessing: an off-list token matches nothing and returns empty rather than erroring. Cuisines, brands and names are not categories. Local, no network, no quota |
 | `geo_distance` / `geo_bearing` / `geo_destination` / `geo_point_in_polygon` / `geo_bbox` / `geo_centroid` / `geo_length` / `geo_area` / `geo_simplify` / `geo_nearest_point_on_line` | Ten pure-computation geometry helpers over the coordinates you supply: no network, no upstream to fail, instant. `geo_distance` is straight-line, **not** driving distance — use `route` or `matrix` for travel time and distance. `geo_simplify`'s `tolerance_deg` is in degrees, not metres |
 
 Conventions across all tools: coordinates are named `{lat, lon}` objects
@@ -133,12 +146,13 @@ helpfully:
 | `PHOTON_URL` | `geocode`, `reverse_geocode`, and the name lookups inside `search_along_route` and `plan_day` |
 | `STUDIO_URL` | style tools (the gateway hosting the style API) |
 | `STUDIO_API_KEY` | style publishes only (`snk_` key); reads work without it |
-| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `submit_integration_retro` (falls back to the `STUDIO_*` pair — same gateway) |
+| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `submit_integration_retro` (falls back to the `STUDIO_*` pair — same gateway) |
 | `SN_MAP_ISSUES_DIR` | `report_map_issue` review queue |
 | `SN_RETROS_DIR` | `submit_integration_retro` fallback queue when the gateway cannot take it |
 
-The ten `geo_*` tools and `check_adr_tunnel`, `list_style_layers`,
-`check_style_contrast` and `validate_geodata` need no upstream at all:
+The ten `geo_*` tools and `check_adr_tunnel`, `list_place_categories`,
+`list_style_layers`, `check_style_contrast` and `validate_geodata` need no
+upstream at all:
 they compute locally and cannot fail on a network.
 
 Run from the self-host distro (`docker compose --profile mcp up -d`, default

@@ -51,19 +51,48 @@ build.
 
 ## Map rendering: Mapbox GL JS → MapLibre
 
-MapLibre GL JS is the drop-in fork (same `Map`, `Marker`, `Popup`, style-spec
-v8). Swap the packages and delete the token global:
+MapLibre GL JS is the **API-compatible** fork (same `Map`, `Marker`, `Popup`,
+style-spec v8), but MapLibre 6 is ESM-only: no UMD build, no browser global, no
+default export. Swap the packages, delete the token global, switch to a
+namespace import, and add the worker setup if your bundler cannot rewrite the
+worker URL:
 
 ```diff
 - import mapboxgl from "mapbox-gl";
 - mapboxgl.accessToken = "pk.…";
 - const map = new mapboxgl.Map({ container: "map", style: "mapbox://styles/mapbox/streets-v12" });
-+ import maplibregl from "maplibre-gl";
++ import * as maplibregl from "maplibre-gl";
++
++ // Turbopack and any other bundler that cannot rewrite the worker URL.
++ maplibregl.setWorkerUrl("/vendor/maplibre/maplibre-gl-worker.mjs");
++
 + const map = new maplibregl.Map({
 +   container: "map",
 +   style: "https://api.mapmap.ai/tiles/uk/style.json?api_key=snk_…",
 + });
 ```
+
+**Bundlers that cannot rewrite the worker URL (Turbopack among them) need
+`setWorkerUrl`.** MapLibre 6 ships its worker as a separate ES module beside
+its entry point, and where the bundler does not rewrite that URL the map shows
+no tiles and logs nothing at all: no console error, no `error` event, no
+failed request. Serve both files, `maplibre-gl-worker.mjs` and
+`maplibre-gl-shared.mjs` (the worker imports the shared chunk, so serving the
+worker alone fails the same silent way), and point MapLibre at the worker
+before the first `new Map`. In a Next.js app:
+
+```sh
+mkdir -p public/vendor/maplibre
+cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/vendor/maplibre/
+cp node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/vendor/maplibre/
+```
+
+`setWorkerUrl` does not exist on MapLibre 5, so an app that supports both
+majors must feature-detect it:
+`(maplibregl as { setWorkerUrl?: (u: string) => void }).setWorkerUrl?.(url)`.
+The SDK deliberately does not wrap it: the host owns the files it serves, and
+a wrapper would be a silent no-op on 5.x. A page that loads MapLibre from a
+real https URL (CDN plus import map) needs none of this.
 
 Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,
 `NavigationCamera`) for routing and turn-by-turn wired in — see the

@@ -92,7 +92,11 @@ migrate the rest — the two APIs coexist fine.
 -   zoom: 6,
 - });
 - new google.maps.marker.AdvancedMarkerElement({ map, position: { lat: 51.5, lng: -0.13 } });
-+ import maplibregl from "maplibre-gl";
++ import * as maplibregl from "maplibre-gl";
++
++ // Turbopack and any other bundler that cannot rewrite the worker URL.
++ maplibregl.setWorkerUrl("/vendor/maplibre/maplibre-gl-worker.mjs");
++
 + const map = new maplibregl.Map({
 +   container: "map",
 +   style: "https://api.mapmap.ai/tiles/uk/style.json?api_key=snk_…",
@@ -102,9 +106,37 @@ migrate the rest — the two APIs coexist fine.
 + new maplibregl.Marker().setLngLat([-0.13, 51.5]).addTo(map);
 ```
 
+MapLibre GL JS 6 is ESM-only: it has no UMD build, no `maplibregl` browser
+global and **no default export**, so `import maplibregl from "maplibre-gl"`
+resolves to `undefined` and the next line throws. Import the namespace.
+
+**Bundlers that cannot rewrite the worker URL (Turbopack among them) need
+`setWorkerUrl`.** MapLibre 6 ships its worker as a separate ES module beside
+its entry point, and where the bundler does not rewrite that URL the map shows
+no tiles and logs nothing at all: no console error, no `error` event, no
+failed request. Serve both files, `maplibre-gl-worker.mjs` and
+`maplibre-gl-shared.mjs` (the worker imports the shared chunk, so serving the
+worker alone fails the same silent way), and point MapLibre at the worker
+before the first `new Map`. In a Next.js app:
+
+```sh
+mkdir -p public/vendor/maplibre
+cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/vendor/maplibre/
+cp node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/vendor/maplibre/
+```
+
+`setWorkerUrl` does not exist on MapLibre 5, so an app that supports both
+majors must feature-detect it:
+`(maplibregl as { setWorkerUrl?: (u: string) => void }).setWorkerUrl?.(url)`.
+The SDK deliberately does not wrap it: the host owns the files it serves, and
+a wrapper would be a silent no-op on 5.x. A page that loads MapLibre from a
+real https URL (CDN plus import map) needs none of this.
+
 The container `div` needs an explicit CSS height or the map renders blank
-(Google's renderer had the same requirement). `InfoWindow` becomes
-`maplibregl.Popup`. Google's cloud-based map styling becomes a MapMap theme
+(Google's renderer had the same requirement), and on MapLibre 6 under Turbopack
+the `setWorkerUrl` call above is mandatory: without it the map loads no tiles
+and logs nothing at all. `InfoWindow` becomes `maplibregl.Popup`. Google's
+cloud-based map styling becomes a MapMap theme
 (19 palette slots + per-layer overrides) built in
 [Studio](https://mapmap.ai/studio) or via the MCP style tools
 (`list_style_layers`, `create_style`, `set_palette`, `set_layer_paint`).

@@ -70,6 +70,10 @@ jobs:
             forty-four) N=44 ;; forty-five) N=45 ;; forty-six) N=46 ;;
             forty-seven) N=47 ;; forty-eight) N=48 ;; forty-nine) N=49 ;;
             fifty) N=50 ;;
+            fifty-one) N=51 ;; fifty-two) N=52 ;; fifty-three) N=53 ;;
+            fifty-four) N=54 ;; fifty-five) N=55 ;; fifty-six) N=56 ;;
+            fifty-seven) N=57 ;; fifty-eight) N=58 ;; fifty-nine) N=59 ;;
+            sixty) N=60 ;;
             *) echo "::error::could not read the tool count from skills/mapmap-mcp-setup/SKILL.md (found '$WRITTEN'); either the wording changed, or the count has grown past fifty and this case list needs extending"; exit 1 ;;
           esac
 
@@ -79,6 +83,35 @@ jobs:
             exit 1
           fi
 
-          ROWS=$(grep -c '^| `' skills/mapmap-mcp-setup/SKILL.md)
-          echo "tool-reference table rows: $ROWS (grouped rows cover several tools, so this is a floor, not an equality)"
-          [ "$ROWS" -ge 15 ] || { echo "::error::the tool-reference table has collapsed to $ROWS rows"; exit 1; }
+          # The row COUNT was a floor, and a floor is not a check: the table
+          # sat at 15-plus rows for weeks with places_in_view and plan_errands
+          # missing from it, and the job went green every time. A count that
+          # agrees while the table omits two tools is the exact drift this
+          # workflow exists to catch, so compare the NAMES.
+          #
+          # A row may cover several tools by naming them all in its first
+          # cell ("`create_style` / `set_palette` / `set_layer_paint`", and
+          # the ten `geo_*` helpers on one row), so every backticked
+          # identifier in that cell counts as a documented tool.
+          grep '^| `' skills/mapmap-mcp-setup/SKILL.md \
+            | awk -F'|' '{print $2}' | grep -o '`[a-z0-9_]*`' | tr -d '`' \
+            | sort -u > /tmp/documented.txt
+          curl -fsS --max-time 20 -X POST "$MCP_URL" -H "$H" -H "$A" -H "Mcp-Session-Id: $SID" \
+            -d '{"jsonrpc":"2.0","id":3,"method":"tools/list"}' \
+            | grep '^data: {' | head -1 | grep -o '"name":"[a-z_]*"' \
+            | sed 's/.*:"//; s/"//' | sort -u > /tmp/live.txt
+
+          MISSING=$(comm -13 /tmp/documented.txt /tmp/live.txt | tr '\n' ' ')
+          AHEAD=$(comm -23 /tmp/documented.txt /tmp/live.txt | tr '\n' ' ')
+
+          # A row for a tool the server does not serve YET is the normal state
+          # of a docs repo that lands before a deploy, and the count check
+          # above already fails while that is true. A LIVE tool with no row is
+          # different and permanent: an agent reads this table and never tries
+          # the tool. That one fails.
+          [ -z "$AHEAD" ] || echo "::notice::documented but not live yet: $AHEAD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::the live server serves tools the tool-reference table does not document: $MISSING"
+            exit 1
+          fi
+          echo "every live tool has a row in the tool-reference table"

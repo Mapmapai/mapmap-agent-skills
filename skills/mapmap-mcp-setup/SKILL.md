@@ -5,17 +5,19 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes forty-three tools (the set grows fast —
-it was eleven in June — so list them live with `tools/list` rather than
+MapMap's MCP server (`sn-mcp`) exposes forty-seven tools (the set grows fast,
+it was eleven in June, so list them live with `tools/list` rather than
 trusting any written count, including this one): routing, along-route search,
 cheapest fuel on a route, EV journey planning and charge points, overhead
-clearance against survey data, GPS trace matching, day planning, reachability,
-elevation, nearby places and their category vocabulary, forward and reverse
-geocoding, place verification, ADR dangerous-goods compliance, travel matrices,
-multi-vehicle route optimisation with stop clustering, mid-shift re-planning
-and an asynchronous lane for oversized problems, quota reporting, map
-correction, integration feedback, map styling, coordinate-system validation and
-ten no-network geometry helpers. Full JSON Schemas and structured outputs, so
+clearance against survey data, GPS trace matching, day planning, errand chains
+against a deadline, reachability, elevation, nearby places, directional
+lookup ("what is that over there"), what a journey passes and the heritage it
+goes by, the place-category vocabulary, forward and reverse geocoding, place
+verification, ADR dangerous-goods compliance, travel matrices, multi-vehicle
+route optimisation with stop clustering, mid-shift re-planning and an
+asynchronous lane for oversized problems, quota reporting, map correction,
+integration feedback, map styling, coordinate-system validation and ten
+no-network geometry helpers. Full JSON Schemas and structured outputs, so
 a model can call it correctly first try.
 
 ## The hosted endpoint (fastest path)
@@ -87,15 +89,19 @@ url = "https://mcp.mapmap.ai/mcp"
 
 | Tool | What it does |
 | --- | --- |
-| `route` | Turn-by-turn route, costing `auto` or `truck`; truck profile `{height_m, width_m, length_m, gross_weight_t, hazmat, tunnel_code}` merges dimensional and ADR costing. Returns `{distance_m, duration_s, summary, maneuvers[], geometry_polyline6, applied_adr}` |
+| `route` | Turn-by-turn route, costing `auto` or `truck`; truck profile `{height_m, width_m, length_m, gross_weight_t, hazmat, tunnel_code}` merges dimensional and ADR costing. Returns `{distance_m, duration_s, summary, maneuvers[], geometry_polyline6, applied_adr}` Set `scenic: true` (auto only) for a PEER OFFER beside the route rather than instead of it: `scenic.reason` is the plain sentence justifying it and a null one means nothing measured above the floor, which is an answer; `scenic.rejections[]` says why each candidate lost. The route itself is never swapped. Costs up to two extra metered route computations |
 | `check_adr_tunnel` | Pure ADR 8.6.4 tunnel-entry decision — no network, answers instantly |
 | `geocode` | Forward geocoding: `{query, limit?, focus?}` |
 | `reverse_geocode` | The inverse: coordinates to the nearest places, nearest first, with `distance_m` and POI display tags (opening hours, website, phone) where the index carries them |
 | `nearby_places` | What is NEAR a point — by `category` (`cafe`, `fuel`, `charging_station`, `parking`, `pharmacy`, …), by `name` for a brand, or both to disambiguate. Use this, not `geocode`, for proximity questions: `geocode` ranks a brand's branches worldwide and only biases by proximity, so it will hand back one in another city over the one 100 m away. Needs a gateway |
+| `places_in_view` | What is over THERE: give a position AND a `bearing_deg` (clockwise from true north) and it returns the places in that cone, each with `distance_m`, its own bearing, a signed `angular_offset_deg` and a spoken `direction`. READ THE `visibility` BLOCK BEFORE SAYING ANYTHING: `clear` means nothing in the data is in the way, `occluded` names what is, and `unknown` means no check could run, so say you cannot tell rather than that it is visible. A non-zero `out_of_sector` means there ARE matching places nearby, just not in that direction. Use `nearby_places` instead when the question is about what is near rather than what is in a direction. Needs a gateway |
+| `plan_errands` | A chain of errands ordered against a hard arrival time. Give `origin`, `destination`, `arrive_by` (RFC 3339 with an offset) and 1 to 5 `errands`, each either a `category` or a `place` the driver already knows. The server picks the order and the actual shops over engine-computed times: do not attempt the arithmetic yourself. `feasible: false` is an ANSWER, not an error to retry: it names the `blocking_errand`, says how late the chain would run, and returns the shorter chain that DOES fit with `dropped` naming what had to go. `hours` is `open_on_the_tag` or `unknown`, never "open". Always show `usage_note`. Needs a gateway |
+| `route_observations` | What a journey PASSES, in sentences ready to read aloud with their position along the route: named rivers and canals it crosses, the road it runs on and for how far, settlements it goes through, protected landscapes it enters and how high the road climbs. None of this is in a route object, so pass `geometry_polyline6` from `route` and let this compute it. The silence budget is the design: `min_gap_m` is a floor and the gap widens on its own past `max_observations`, so a short list on a long route is correct. READ `coverage` BEFORE REPORTING AN EMPTY LIST: `tiles_read` of 0 means no data was read, which is not the same claim as quiet countryside. Never names a hill, never reads a junction number. 10 units. Needs a gateway |
+| `heritage_narration` | Three to five short spoken lines an hour about the ground a route is on, each at the point it belongs. Every line was written from a public-domain plaque inscription and reviewed by a person, compiled into the gateway binary: nothing is generated while anybody is driving. Pass `duration_s` with the geometry or the budget falls back to a distance. Coverage is ONE corridor on purpose, so no lines is the ordinary answer: read the `census`, where everything in `beyond_reach` means the feature does not cover this journey and entries in `silenced_by_budget` mean it does and the budget is holding them back. No line claims anything is visible or names a side of the road. 1 unit. Needs a gateway |
 | `matrix` | Many-to-many travel matrix: `durations_s[i][j]` seconds, `distances_m[i][j]` metres, `null` = unreachable |
 | `optimise_routes` | Multi-vehicle VRP with truck/ADR constraints; fair-use cap 200 unique locations |
 | `search_along_route` | Stops from the API key's own uploaded places dataset along a route, ranked by honest detour cost (real added driving time, engine-measured). Needs a gateway key with a places dataset |
-| `cheapest_fuel_along_route` | Cheapest fuel on a route from the live open-data price feeds (UK Fuel Finder, FR prix-carburants, DE Tankerkoenig), each station carrying the engine-measured detour, a 24-hour staleness flag and the saving against the cheapest on-route baseline. Needs a gateway |
+| `cheapest_fuel_along_route` | Cheapest fuel on a route from the live open-data price feeds (UK Fuel Finder, FR prix-carburants, DE Tankerkoenig), each station carrying the engine-measured detour, a 24-hour staleness flag and the saving against the cheapest on-route baseline. `say` is ALWAYS present and is the whole answer as one short spoken line, safe to read to a driver verbatim and safe on an empty result, where it names the cause instead of implying there is no fuel on the road; a stale price's line states the day it was last seen and claims no saving. Needs a gateway |
 | `plan_day` | An itinerary (place names or coordinates, optional dwell times) composed into one navigable multi-stop route with per-stop ETAs; `optimise: true` reorders the stops |
 | `reachable_area` | Isochrone rings as GeoJSON: where you can get to inside one or more time budgets, on foot, by bike or by car |
 | `order_stops` | One vehicle's stops put in the best visiting order, with arrival offsets, total duration and distance |
@@ -109,7 +115,7 @@ url = "https://mcp.mapmap.ai/mcp"
 | `create_style` / `set_palette` / `set_layer_paint` | Create and restyle hosted maps — each publish is a new immutable version, metered |
 | `validate_geodata` | Checks whether a dataset's DECLARED coordinate reference system actually describes its own coordinates, before you draw it. Catches the silent failures: swapped lat/lon axes, degrees labelled as metres, Web Mercator mislabelled with a UTM or national-grid code. Pass the declared CRS and a sample of raw coordinates as `{x, y}` in the dataset's OWN units — deliberately not `lon`/`lat`, because whether they are degrees is the question. Returns `consistent` / `suspect` / `impossible`, what is wrong in plain language, and where the numbers actually point read another way. A sanity check, never a reprojection. Local, no network, no quota |
 | `plan_ev_route` | A whole electric-vehicle journey with its charge stops: consumption from a published road-load physics model over the route's own legs, and charge times integrated over the vehicle's charging curve rather than energy divided by peak power. `feasible: false` with a `reason` and the furthest reachable point is an ANSWER, not an error to retry. Always show the returned `coverage_note`. Needs a gateway |
-| `cheapest_charging_along_route` | Charge points along a route, ranked most powerful first, each carrying its engine-measured detour; filter by `connectors`, `min_kw`, `available_only` and `max_detour_minutes`. Operator-published feeds only, so an empty result means "none from these operators within the detour budget", never "there are no chargers here": show the `coverage_note`. Needs a gateway |
+| `cheapest_charging_along_route` | Charge points along a route, ranked most powerful first, each carrying its engine-measured detour; filter by `connectors`, `min_kw`, `available_only` and `max_detour_minutes`. Operator-published feeds only, so an empty result means "none from these operators within the detour budget", never "there are no chargers here". `say` is ALWAYS present and is the whole answer as one short spoken line with the coverage inside the claim rather than appended to it, so an empty result's line says the emptiness is about those operators and not about the road. Read `say`, and show the `coverage_note`. Needs a gateway |
 | `check_clearance_on_route` | A vehicle's overhead clearance measured along a truck-costed route against surveyed point-cloud geometry: `pass`, `fail`, `indeterminate` or `no_verdict` with the limiting point, the measured headroom and its uncertainty bound. Measured geometry from a dated survey, never a posted or signed height, so `clearance_enforcement.route_certified` is always false and the caveat rides on every answer. Needs a gateway |
 | `match_trace` | Snaps a recorded GPS trace (2 to 2,000 points, or a polyline6 string) onto the road network and says what it actually travelled over: roll-ups `by_road_class`, `by_admin` and `by_surface`, plus toll, bridge and tunnel totals. Pass the `costing` it was driven under, or a walk matched as `auto` snaps to the carriageway. Needs a gateway |
 | `cluster` | Groups up to 5,000 stops into balanced geographic clusters so a day too large for one optimisation can be solved cluster by cluster, then `optimise_routes` per cluster. STRAIGHT-LINE distances, no road network consulted: right for deciding which stops belong together, wrong for deciding visiting order. Show the returned `basis`. Same `seed` gives the same clusters. Needs a gateway |
@@ -122,6 +128,114 @@ url = "https://mcp.mapmap.ai/mcp"
 
 Conventions across all tools: coordinates are named `{lat, lon}` objects
 (never positional arrays), distances in metres, durations in seconds.
+
+## Worked examples
+
+Two shapes agents get wrong most often. Both turn on reading a field that
+is easy to skip.
+
+### Directional lookup: "what is that over there"
+
+`nearby_places` answers "what is near me". It cannot answer "what is that
+building I am looking at", because it has no idea which way the user is
+facing. `places_in_view` takes a bearing and answers the question actually
+asked.
+
+```json
+{
+  "name": "places_in_view",
+  "arguments": {
+    "lat": 51.5045, "lon": -0.0865,
+    "bearing_deg": 95,
+    "fov_deg": 45,
+    "radius_m": 1200,
+    "category": "building",
+    "eye_height_m": 1.6
+  }
+}
+```
+
+```json
+{
+  "results": [
+    { "name": "The Shard", "distance_m": 410, "bearing_deg": 98,
+      "angular_offset_deg": 3,
+      "direction": "directly ahead, about 400 metres",
+      "visibility": { "verdict": "clear", "basis": "terrain-and-buildings",
+                      "checks": { "terrain": "clear", "buildings": "clear" } } },
+    { "name": "Guy's Tower", "distance_m": 780, "bearing_deg": 104,
+      "angular_offset_deg": 9,
+      "direction": "ahead and slightly to your right, about 800 metres",
+      "visibility": { "verdict": "occluded", "basis": "terrain-and-buildings",
+                      "obstruction": { "kind": "building", "distance_m": 300,
+                                       "building_height_m": 95,
+                                       "building_height_basis": "tagged" } } }
+  ],
+  "out_of_sector": 6,
+  "coverage": "Visibility was checked against the elevation model and building footprints.",
+  "caveat": "Visibility is modelled from maps, not observed."
+}
+```
+
+**Read `visibility` before you say anything.** Say "that is The Shard,
+about 400 metres ahead". Do NOT say Guy's Tower is in view: a 95 m
+building stands in front of it. And if `verdict` is `unknown`, say you
+cannot tell, never that it is visible. The `out_of_sector: 6` is worth
+relaying too: there are six more buildings nearby, just not in that
+direction, which is a different answer from "nothing nearby".
+
+Follow it with `route_observations` on a journey rather than a standing
+position: same instinct, whole route, with each sentence positioned at the
+point it belongs.
+
+### Errand chains: let the server say no
+
+"Pick up a prescription, get petrol, and be at the school by quarter past
+three" is `plan_errands`, not three calls and some arithmetic. Convert the
+time to RFC 3339 with an offset yourself; resolve any named place with
+`geocode` first and pass the coordinate, never an invented one.
+
+```json
+{
+  "name": "plan_errands",
+  "arguments": {
+    "origin": { "lat": 51.4545, "lon": -2.5879 },
+    "destination": { "lat": 51.4712, "lon": -2.6031 },
+    "destination_name": "the school",
+    "arrive_by": "2026-09-22T15:15:00+01:00",
+    "errands": [
+      { "category": "pharmacy", "dwell_minutes": 8 },
+      { "category": "fuel", "dwell_minutes": 6 }
+    ]
+  }
+}
+```
+
+```json
+{
+  "feasible": false,
+  "blocking_errand": "pharmacy",
+  "over_by_s": 540,
+  "stops": [
+    { "errand": "fuel", "name": "Esso Coronation Road",
+      "arrive": "2026-09-22T14:51:00+01:00",
+      "depart": "2026-09-22T14:57:00+01:00",
+      "hours": "open_on_the_tag", "place_id": "gx:4471209" }
+  ],
+  "dropped": ["pharmacy"],
+  "slack_s": 420,
+  "usage_note": "Plan this before setting off or hand it to a passenger. Never at the wheel."
+}
+```
+
+**`feasible: false` is the answer, not an error to retry.** Do not re-run
+it with fewer errands hoping for a 200: the reduced chain that fits is
+already in `stops`, and what had to go is in `dropped`. Tell the driver:
+"Petrol fits and you will still be nine minutes early, but the pharmacy
+would put you nine minutes late at the school." Name only shops the answer
+returned, each of which carries its own `place_id`, and treat
+`open_on_the_tag` as evidence rather than a promise: most places carry no
+hours at all and come back `unknown`.
 
 ## Error handling for agents
 

@@ -1,13 +1,13 @@
 ---
 name: mapmap-web-maps-integration
-description: Build web maps and turn-by-turn navigation with @mapmap/maps — install, map creation, truck routing, guidance banners and voice, the NavigationCamera chase cam, Studio themes, and the gotchas (container height, globe projection, attribution).
+description: Build web maps and turn-by-turn navigation with @mapmap/maps: install, map creation, truck routing, guidance banners and voice, the NavigationCamera chase cam, vehicle avatars, Studio themes, and the gotchas (container height, globe projection, attribution).
 ---
 
 # Web maps with @mapmap/maps
 
 `@mapmap/maps` is a thin TypeScript wrapper over MapLibre GL JS with MapMap
 tiles, styles, routing and navigation UI wired in. ESM only, Node ≥ 18 to
-build. Version 0.12.0. Peers: `maplibre-gl` `>=5.0.0 <7.0.0` (MapLibre GL
+build. Version 0.13.0. Peers: `maplibre-gl` `>=5.0.0 <7.0.0` (MapLibre GL
 JS 5 and 6; 4.x is not supported), `pmtiles` `>=3.0.0 <5.0.0`. MapLibre 6
 requires **WebGL 2** and has no WebGL 1 fallback, so an environment without
 one gets the `[webgl-unavailable]` diagnostic and no map.
@@ -120,6 +120,40 @@ navigator.geolocation.watchPosition(({ coords }) =>
   the chase cam.
 - **Globe projection is unsupported** — `NavigationCamera.isSupported(map)`
   returns `false`; switch the map to mercator before navigating.
+
+## Vehicle avatars (`@mapmap/maps/avatars`)
+
+Draw the user's vehicle as one of MapMap's own 3D-rendered cars instead of
+the dot and arrow: City, Tourer, SUV or Van, in eight paints. A drop-in for
+`PositionPuck`, and `camera.attachPuck()` takes it the same way:
+
+```ts
+import { AvatarPuck } from "@mapmap/maps/avatars";
+
+const car = new AvatarPuck(map, { car: "city", paint: "signal-blue", size: "m" });
+await car.whenReady();                         // optional: artwork decoded
+car.setLocation({ lat, lon }, headingDeg);     // same call as PositionPuck
+car.setAvatar({ car: "van", paint: "sun-yellow" }); // swap, keeps position
+car.remove();
+```
+
+- Import from the **subpath** `@mapmap/maps/avatars`, not the main entry.
+- Cars: `"city" | "tourer" | "suv" | "van"`; paints: `"glacier-white"`,
+  `"signal-blue"`, `"graphite"`, `"silver"`, `"racing-red"`, `"sun-yellow"`,
+  `"teal"`, `"magenta"`; sizes `"s"` 48, `"m"` 64, `"l"` 80 CSS px or a
+  number. There is no GT yet: do not offer one.
+- The artwork is fetched at runtime (about 0.4 MB for the pitch bucket on
+  screen) from MapMap's asset host; a strict CSP needs `connect-src` for
+  `https://api.mapmap.ai`. If it cannot load, the puck draws a
+  `PositionPuck` and calls `onFallback({ reason })`: never blank.
+- `whenReady()` is optional and never rejects.
+- Fleet maps: build one symbol layer with `avatarSymbolLayer` and
+  `avatarFeatureProperties` instead of one `AvatarPuck` per vehicle.
+- React Native, iOS and Android: no SDK helper yet; use the hosted sprite
+  contract (the manifest, 6 by 6 WebP atlases and cell JSON) with MapLibre
+  Native `addImage` and a symbol layer. See the Vehicle avatars docs.
+- Licence: the artwork is free with MapMap maps, SDKs and APIs, and may not
+  be used with other map providers or redistributed.
 
 ## Studio themes
 

@@ -5,10 +5,11 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes forty-seven tools (the set grows fast,
+MapMap's MCP server (`sn-mcp`) exposes fifty-two tools (the set grows fast,
 it was eleven in June, so list them live with `tools/list` rather than
 trusting any written count, including this one): routing, along-route search,
-cheapest fuel on a route, EV journey planning and charge points, overhead
+cheapest fuel on a route, forecast weather along a route, England bus stops
+and timetabled departures, EV journey planning and charge points, overhead
 clearance against survey data, GPS trace matching, day planning, errand chains
 against a deadline, reachability, elevation, nearby places, directional
 lookup ("what is that over there"), what a journey passes and the heritage it
@@ -16,7 +17,8 @@ goes by, the place-category vocabulary, forward and reverse geocoding, place
 verification, ADR dangerous-goods compliance, travel matrices, multi-vehicle
 route optimisation with stop clustering, mid-shift re-planning and an
 asynchronous lane for oversized problems, quota reporting, map correction,
-integration feedback, map styling, coordinate-system validation and ten
+integration feedback, map styling, coordinate-system validation,
+camera-verified incidents (off unless a deployment arms them) and ten
 no-network geometry helpers. Full JSON Schemas and structured outputs, so
 a model can call it correctly first try.
 
@@ -102,6 +104,9 @@ url = "https://mcp.mapmap.ai/mcp"
 | `optimise_routes` | Multi-vehicle VRP with truck/ADR constraints; fair-use cap 200 unique locations |
 | `search_along_route` | Stops from the API key's own uploaded places dataset along a route, ranked by honest detour cost (real added driving time, engine-measured). Needs a gateway key with a places dataset |
 | `cheapest_fuel_along_route` | Cheapest fuel on a route from the live open-data price feeds (UK Fuel Finder, FR prix-carburants, DE Tankerkoenig), each station carrying the engine-measured detour, a 24-hour staleness flag and the saving against the cheapest on-route baseline. `say` is ALWAYS present and is the whole answer as one short spoken line, safe to read to a driver verbatim and safe on an empty result, where it names the cause instead of implying there is no fuel on the road; a stale price's line states the day it was last seen and claims no saving. Needs a gateway |
+| `weather_along_route` | Forecast weather along a route, each sample read for the hour it is reached: `{shape` (polyline6)`, depart_at?, duration_s?, sample_interval_m?}` → per-sample ETA, temperature, rain, snow, wind and gusts, visibility, `severe`, and a one-sentence `summary`. A forecast, advisory only and never a routing guarantee; display the returned Open-Meteo `attribution`. Needs a gateway |
+| `nearby_stops` | England bus and coach stops near a point, nearest first, each with its NaPTAN ATCO `id` (pass it to `next_departures`), `distance_m`, `bearing_deg` and the `lines` calling there. Display data, never a journey plan: pass on the returned `label` and `coverage`. Needs a gateway |
+| `next_departures` | Timetabled departures at one stop (`stop` is the ATCO code), each with `line`, `destination` and `scheduled_at`, plus `live` when a vehicle on that line was seen heading towards the stop. Timetable times, never arrival predictions: pass on the `label` verbatim. Needs a gateway |
 | `plan_day` | An itinerary (place names or coordinates, optional dwell times) composed into one navigable multi-stop route with per-stop ETAs; `optimise: true` reorders the stops |
 | `reachable_area` | Isochrone rings as GeoJSON: where you can get to inside one or more time budgets, on foot, by bike or by car |
 | `order_stops` | One vehicle's stops put in the best visiting order, with arrival offsets, total duration and distance |
@@ -124,6 +129,8 @@ url = "https://mcp.mapmap.ai/mcp"
 | `get_job` | Reads a job submitted with `submit_optimise_job`: `queued`, `running`, `succeeded` or `failed`, with the result inline once it finishes. Poll every few seconds while `terminal` is false. Polling is free: the gateway meters the submission, not the reads. Needs a gateway |
 | `get_usage` | What your own key has spent, so you can decide mid-task whether to keep going: per-day and per-endpoint figures, month used against quota, and the prepaid balance. Counted in weighted quota UNITS, never a number of calls. Free to read, and only ever reports on the key that authenticates the call. Needs a gateway |
 | `list_place_categories` | The canonical `category` tokens for `nearby_places` and `search_along_route`, each with its colloquial aliases and a one-line description. Read it before guessing: an off-list token matches nothing and returns empty rather than erroring. Cuisines, brands and names are not categories. Local, no network, no quota |
+| `camera_incidents` | Road incidents a traffic camera saw and a vision model confirmed, in force now, near a point, in a box or along a route shape: what each asserts, the clip it was judged on, confidence and expiry. An empty list is no camera-verified incident, never a clear road. Off unless the deployment arms camera-verified incidents (501 otherwise) |
+| `set_temporary_closure` | Operator write, admin only: a short-lived closure or speed on named OSM ways. Never call it without a person's explicit approval of that exact closure; refuses on the hosted endpoint and anywhere `SN_ADMIN_TOKEN` is not set |
 | `geo_distance` / `geo_bearing` / `geo_destination` / `geo_point_in_polygon` / `geo_bbox` / `geo_centroid` / `geo_length` / `geo_area` / `geo_simplify` / `geo_nearest_point_on_line` | Ten pure-computation geometry helpers over the coordinates you supply: no network, no upstream to fail, instant. `geo_distance` is straight-line, **not** driving distance — use `route` or `matrix` for travel time and distance. `geo_simplify`'s `tolerance_deg` is in degrees, not metres |
 
 Conventions across all tools: coordinates are named `{lat, lon}` objects
@@ -260,7 +267,7 @@ helpfully:
 | `PHOTON_URL` | `geocode`, `reverse_geocode`, and the name lookups inside `search_along_route` and `plan_day` |
 | `STUDIO_URL` | style tools (the gateway hosting the style API) |
 | `STUDIO_API_KEY` | style publishes only (`snk_` key); reads work without it |
-| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `submit_integration_retro` (falls back to the `STUDIO_*` pair — same gateway) |
+| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `weather_along_route`, `nearby_stops`, `next_departures`, `camera_incidents`, `set_temporary_closure`, `submit_integration_retro` (falls back to the `STUDIO_*` pair — same gateway) |
 | `SN_MAP_ISSUES_DIR` | `report_map_issue` review queue |
 | `SN_RETROS_DIR` | `submit_integration_retro` fallback queue when the gateway cannot take it |
 

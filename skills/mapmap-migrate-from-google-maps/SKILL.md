@@ -48,7 +48,9 @@ named `{lat, lon}` keys). Audit every coordinate you pass across.
 | Routes API `POST …:computeRoutes` / legacy Directions API | `GET /route/v1/{profile}/{coords}` or `POST /route` | Profiles: `driving`, `truck`, `bus`, `bicycle`, `walking`, `scooter`, `motorcycle`. Response is OSRM-shaped, not Google-shaped — see below |
 | `avoidTolls` / `avoidHighways` / `avoidFerries` route modifiers | `avoid_tolls`, `avoid_motorways`, `avoid_ferries`, `shortest` | Query params on the GET endpoint; toll/motorway avoidance is motorised-profiles only |
 | Routes API `computeRouteMatrix` / legacy Distance Matrix API | `POST /matrix` | JSON body, `durations` seconds / `distances` metres, `null` = unreachable — no element streaming, one response |
-| Geocoding API (`/geocode/json`) | `GET /geocode`, `GET /geocode/reverse` | GeoJSON `FeatureCollection` in the Photon property shape — nothing like Google's `results[]`; client changes required |
+| Geocoding API (`/geocode/json`) | `GET /geocode`, `GET /geocode/reverse` | Hosted worldwide. GeoJSON `FeatureCollection` in the Photon property shape, nothing like Google's `results[]`; client changes required |
+| Places Autocomplete | `GET /geocode/suggest`, then `GET /geocode/retrieve?id=…` | Search as you type; each suggestion carries `lat`/`lon`, so a pick plots without the retrieve call |
+| Maps Static API | `GET`/`POST https://mapmap.ai/api/static-map` (keyless, rate-limited) or `https://api.mapmap.ai/v1/static-map` (keyed, 15 Standard calls per image) | PNG, WebP or JPEG; camera by `center`+`zoom`, `bbox` or auto-fit; `route=` encoded polyline (`precision=6` default, `precision=5` for `GET /route/v1` output), `geojson=`, `markers=`; up to 1280×1280 px, `@2x` for retina |
 | Maps JavaScript API (`google.maps.Map`) | MapLibre GL via `@mapmap/maps`, or the `style.json` URL | Vector tiles you render, not Google's renderer — see below |
 | Directions waypoint optimisation / Route Optimization API | `POST /optimise` | Multi-vehicle VRP; truck/ADR constraints shape the plan |
 
@@ -63,23 +65,21 @@ machine-readable manoeuvres. Any OSRM client library parses it directly —
 often the cheapest path is adopting one rather than adapting your Google
 parser. Geocoding likewise: `formatted_address`, `address_components` and
 `geometry.location` do not exist; you get GeoJSON features with Photon-style
-properties. Note the hosted gateway serves `/geocode` only once a territory
-index is wired in — until then it answers `501 geocoding-not-enabled`;
-self-hosted deployments enable it via `SN_GEOCODE_DIR` or `SN_PHOTON_URL`.
+properties. The hosted gateway geocodes worldwide; a self-hosted deployment
+answers `501 geocoding-not-enabled` until it sets `SN_GEOCODE_DIR` or
+`SN_PHOTON_URL`.
 
 ## What does NOT port — no replacement exists
 
 Do not promise parity on these; MapMap has no drop-in substitute:
 
-- **Places API richness** — reviews, ratings, photos, opening hours, place
-  details. MapMap geocoding resolves names and addresses from
-  OpenStreetMap; it is not a business-data product.
+- **Places API richness**: reviews, ratings and photos. MapMap geocoding
+  resolves names and addresses from OpenStreetMap, and reverse-geocoded
+  POIs carry what OSM holds (opening hours, phone, website, brand), but it
+  is not a business-data product.
 - **Street View** — nothing comparable.
 - **Traffic-aware routing** — Google's `TRAFFIC_AWARE` ETAs use live probe
   data. MapMap routes on the road network without live traffic.
-- **Global coverage on the hosted gateway** — Google is worldwide by
-  default; MapMap hosted coverage is territory-based (check
-  `GET /territories`). Self-host covers anywhere you build territories for.
 
 If your product depends on any of these, keep that Google surface and
 migrate the rest — the two APIs coexist fine.

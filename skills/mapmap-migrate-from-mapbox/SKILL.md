@@ -1,6 +1,6 @@
 ---
 name: mapmap-migrate-from-mapbox
-description: Migrate a Mapbox GL JS / Directions API application to MapMap — endpoint and token mapping, style migration to MapLibre, what ports unchanged, what MapMap adds (truck/ADR, self-host) and what it does not offer.
+description: Migrate a Mapbox GL JS / Directions API application to MapMap: endpoint and token mapping, style migration to MapLibre, what ports unchanged, what MapMap adds (truck/ADR, self-host) and what it does not offer.
 ---
 
 # Migrating from Mapbox to MapMap
@@ -26,7 +26,7 @@ curl -fsS -X POST "https://api.mapmap.ai/v1/keys" \
 ```
 
 Send as `Authorization: Bearer snk_…` (preferred) or `?api_key=snk_…` for
-URL-only contexts (style URLs, tile URLs) — the analogue of Mapbox's
+URL-only contexts (style URLs, tile URLs), the analogue of Mapbox's
 `?access_token=`.
 
 ## Endpoint mapping
@@ -34,20 +34,37 @@ URL-only contexts (style URLs, tile URLs) — the analogue of Mapbox's
 | Mapbox | MapMap | Notes |
 | --- | --- | --- |
 | `GET /directions/v5/mapbox/{profile}/{coords}` | `GET /route/v1/{profile}/{coords}` | Same OSRM shape: `lon,lat;lon,lat`, `distance` metres, `duration` seconds, encoded polyline. Profiles: `driving`, `truck`, `bus`, `bicycle`, `walking`, `scooter`, `motorcycle` |
-| `voice_instructions=true&banner_instructions=true` | same parameters | Output is Mapbox-shaped: `voiceInstructions` (incl. SSML) and `bannerInstructions` (incl. lane diagrams) — existing consumers work |
+| `voice_instructions=true&banner_instructions=true` | same parameters | Output is Mapbox-shaped: `voiceInstructions` (incl. SSML) and `bannerInstructions` (incl. lane diagrams), so existing consumers work |
 | `GET /directions-matrix/v1/…` | `POST /matrix` | JSON body, `durations` seconds / `distances` metres, `null` = unreachable |
 | `GET /isochrone/v1/…` | `POST /isochrone` | GeoJSON contours |
 | `GET /matching/v5/…` | `POST /trace_route`, `POST /trace_attributes` | Map matching |
-| `GET /geocoding/v5/…` | `GET /geocode`, `GET /geocode/reverse` | Photon-backed; response shape differs — this is the one endpoint needing client changes |
+| `GET /geocoding/v5/…` | `GET /geocode`, `GET /geocode/reverse` | Hosted worldwide. Photon-compatible GeoJSON, so the response shape differs: this is the one endpoint needing client changes. Reverse POI hits carry OSM details (opening hours, phone, website, brand) |
+| Search Box API (`/search/searchbox/v1/suggest`, `/retrieve`) | `GET /geocode/suggest`, `GET /geocode/retrieve?id=…` | Search as you type: the trailing token matches as a prefix; suggestions carry `lat`/`lon`, so a pick plots without a retrieve |
 | `GET /optimized-trips/v1/…` | `POST /optimise` | Multi-vehicle VRP; truck/ADR constraints shape the plan |
 | Mapbox Styles API | `POST /styles`, `GET /styles/{id}.json` | Versioned, immutable publishes; theme documents instead of raw style edits |
-| `mapbox://` tile URLs | `GET /tiles/{territory}/{z}/{x}/{y}.mvt` + `/tiles/{territory}/style.json` | Standard XYZ over HTTPS, TileJSON 3.0 |
-| Static Images API (`GET /styles/v1/{user}/{style}/static/…`) | `GET`/`POST https://mapmap.ai/api/static-map` | Website-hosted (mapmap.ai, not api.mapmap.ai), no API key, rate-limited. Camera by `center`+`zoom`, `bbox`, or auto-fit to the overlay; `route=` encoded polyline (`precision=6` default, pass `precision=5` for `GET /route/v1` output), `geojson=` or a JSON POST body with simplestyle `stroke`/`fill` honoured, `markers=`. Capped: at most 20 shapes and 50 markers per image, GeoJSON up to 512 KB per POST body, `route=` polylines thinned beyond 4,000 points, images up to 1280×1280 px (append `@2x` for retina). Full parameters: https://mapmap.ai/docs/api-reference (Static map images section) |
+| `mapbox://` tile URLs | `GET /tiles/{territory}/{z}/{x}/{y}.mvt` + `/tiles/{territory}/style.json` | Standard XYZ over HTTPS, TileJSON 3.0. Territory `planet` is the whole world in one source; the `.mvt` (or `.pbf`) extension is required |
+| Static Images API (`GET /styles/v1/{user}/{style}/static/…`) | `GET`/`POST https://mapmap.ai/api/static-map` (keyless) or `GET`/`POST https://api.mapmap.ai/v1/static-map` (keyed) | The website one (mapmap.ai) needs no API key and is rate-limited per IP. The gateway one bills to your key at a flat 15 Standard calls per image (`unit_rules.static_map` in `/pricing.json`), answers `401` without a key, takes the same camera, size, style, format and `route=` parameters, and reads a POST body as a raw GeoJSON overlay. On the website endpoint: camera by `center`+`zoom`, `bbox`, or auto-fit to the overlay; `route=` encoded polyline (`precision=6` default, pass `precision=5` for `GET /route/v1` output), `geojson=` or a JSON POST body with simplestyle `stroke`/`fill` honoured, `markers=`. Capped: at most 20 shapes and 50 markers per image, GeoJSON up to 512 KB per POST body, `route=` polylines thinned beyond 4,000 points, images up to 1280×1280 px (append `@2x` for retina). Full parameters: https://mapmap.ai/docs/api-reference (Static map images section) |
 
-What MapMap does **not** offer: Mapbox's global POI search stack, and
-worldwide hosted tile coverage on day one. Hosted coverage is
-territory-based (check `GET /territories`); self-host covers anywhere you
-build.
+Hosted coverage is worldwide: one planet routing graph, worldwide
+geocoding and planet vector tiles (`/tiles/planet/…`). The territory index
+(`GET /territories`) is authoritative for regional archives and offline
+packages; self-host covers whatever you build.
+
+What MapMap does **not** offer, so a gap does not surface halfway through a
+migration:
+
+- **No hosted tileset upload.** Tile your data yourself (any PMTiles
+  writer) and host the archive on your own bucket, referenced as
+  `pmtiles://https://…`. Point data you want searchable goes to
+  `PUT /places`, up to 10,000 per key.
+- **No hosted satellite tileset** for your apps: bring your own imagery as
+  an XYZ `raster` source.
+- **Some Mapbox GL JS v3 features have no MapLibre counterpart**:
+  raster-array sources and the particle layer, snow and rain layers,
+  multiple lights and style imports.
+- **`maneuver.instruction` is not populated.** Routes are the pure OSRM
+  shape; read the Mapbox-shaped `bannerInstructions` and
+  `voiceInstructions` instead.
 
 ## Map rendering: Mapbox GL JS → MapLibre
 
@@ -68,7 +85,7 @@ worker URL:
 +
 + const map = new maplibregl.Map({
 +   container: "map",
-+   style: "https://api.mapmap.ai/tiles/uk/style.json?api_key=snk_…",
++   style: "https://api.mapmap.ai/tiles/planet/style.json?api_key=snk_…",
 + });
 ```
 
@@ -95,20 +112,20 @@ a wrapper would be a silent no-op on 5.x. A page that loads MapLibre from a
 real https URL (CDN plus import map) needs none of this.
 
 Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,
-`NavigationCamera`) for routing and turn-by-turn wired in — see the
+`NavigationCamera`) for routing and turn-by-turn wired in; see the
 `mapmap-web-maps-integration` skill.
 
 Custom Mapbox styles: MapLibre reads style-spec v8, but `mapbox://` source
 URLs, Mapbox fonts and sprites must be repointed. The pragmatic path is
 recreating the look as a MapMap theme (19 palette slots + per-layer
-overrides) in [Studio](https://mapmap.ai/studio) — or let an agent do it via
+overrides) in [Studio](https://mapmap.ai/studio), or let an agent do it via
 the MCP style tools (`list_style_layers`, `create_style`, `set_palette`,
 `set_layer_paint`).
 
 ## What you gain in the swap
 
 - **Truck & ADR routing**: dimensional limits and dangerous-goods tunnel
-  codes enforced in costing — parameters Mapbox Directions does not have
+  codes enforced in costing, parameters Mapbox Directions does not have
   (see the `mapmap-truck-adr-routing` skill).
 - **Self-host**: the identical stack (gateway, engine, geocoder, MCP server)
   from one Docker Compose file, with signed offline territory packages.
@@ -118,8 +135,8 @@ the MCP style tools (`list_style_layers`, `create_style`, `set_palette`,
 ## Billing differences to encode
 
 Two price classes detected per request: standard (car/bike/pedestrian
-routing, matrix, isochrone, matching, geocoding — from 0.05p/call) and
-premium (anything truck/ADR — from 1p/call, drawing 20 included calls from
+routing, matrix, isochrone, matching, geocoding: from 0.05p/call) and
+premium (anything truck/ADR: from 1p/call, drawing 20 included calls from
 the free tier). Prepaid credit only: no credit means `402`/`429`, never
 surprise billing. A 4xx-answered request is never charged. Machine-readable:
 `https://mapmap.ai/pricing.json`.
@@ -138,9 +155,9 @@ https://mapmap.ai/docs/conventions.
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

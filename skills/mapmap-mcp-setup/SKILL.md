@@ -5,11 +5,13 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes fifty-two tools (the set grows fast,
+MapMap's MCP server (`sn-mcp`) exposes fifty-five tools (the set grows fast,
 it was eleven in June, so list them live with `tools/list` rather than
 trusting any written count, including this one): routing, along-route search,
 cheapest fuel on a route, forecast weather along a route, England bus stops
-and timetabled departures, EV journey planning and charge points, overhead
+and timetabled departures, earthquakes, volcano alerts and satellite fire
+detections in an area, space weather and the aurora forecast, weather
+forecast frames for drawing on a map, EV journey planning and charge points, overhead
 clearance against survey data, GPS trace matching, day planning, errand chains
 against a deadline, reachability, elevation, nearby places, directional
 lookup ("what is that over there"), what a journey passes and the heritage it
@@ -107,6 +109,9 @@ url = "https://mcp.mapmap.ai/mcp"
 | `weather_along_route` | Forecast weather along a route, each sample read for the hour it is reached: `{shape` (polyline6)`, depart_at?, duration_s?, sample_interval_m?}` → per-sample ETA, temperature, rain, snow, wind and gusts, visibility, `severe`, and a one-sentence `summary`. A forecast, advisory only and never a routing guarantee; display the returned Open-Meteo `attribution`. Needs a gateway |
 | `nearby_stops` | England bus and coach stops near a point, nearest first, each with its NaPTAN ATCO `id` (pass it to `next_departures`), `distance_m`, `bearing_deg` and the `lines` calling there. Display data, never a journey plan: pass on the returned `label` and `coverage`. Needs a gateway |
 | `next_departures` | Timetabled departures at one stop (`stop` is the ATCO code), each with `line`, `destination` and `scheduled_at`, plus `live` when a vehicle on that line was seen heading towards the stop. Timetable times, never arrival predictions: pass on the `label` verbatim. Needs a gateway |
+| `events_in_area` | Earthquakes (USGS, magnitude 2.5 and above, past 24 hours), USGS-monitored volcano alerts and NASA FIRMS satellite fire detections in a `bbox` `[west, south, east, north]`; optional `types` (`quake`, `volcano`, `fire`), `min_magnitude` and `limit`. Fire cells are satellite-detected heat, NOT confirmed fires, and an absent volcano alert says nothing about unmonitored volcanoes. Each feed carries a `status` (`ok`, `stale`, `unknown`): pass a stale or unknown one on. Reported data for display, never a warning service; show the `attribution` and, for fires, the FIRMS `acknowledgment` and `disclaimer`. Needs a gateway |
+| `space_weather_now` | The planetary Kp index and the NOAA SWPC OVATION aurora forecast right now, no input: `kp` (0 to 9), the peak aurora probability and `aurora_png_url` (a probability grid) when the forecast is under an hour old, `status: unavailable` when it is older. A forecast 30 to 90 minutes ahead, never a sighting or a guarantee. Show the `attribution`. Needs a gateway |
+| `weather_frames` | The NOAA GFS forecast frames MapMap processes for drawing weather: 17 frames (0 to 48 hours, every 3 hours) of the newest run, each with URLs for the rain, temperature, cloud, gust, pressure and wind fields plus XYZ tile templates; optional `run` (`YYYYMMDDHH`) and `fields`. The URLs need the caller's own key. A forecast processed (regridded and quantised) by MapMap, never original NOAA data; `status` says whether the run is fresh. Show the `attribution`. Needs a gateway |
 | `plan_day` | An itinerary (place names or coordinates, optional dwell times) composed into one navigable multi-stop route with per-stop ETAs; `optimise: true` reorders the stops |
 | `reachable_area` | Isochrone rings as GeoJSON: where you can get to inside one or more time budgets, on foot, by bike or by car |
 | `order_stops` | One vehicle's stops put in the best visiting order, with arrival offsets, total duration and distance |
@@ -267,7 +272,7 @@ helpfully:
 | `PHOTON_URL` | `geocode`, `reverse_geocode`, and the name lookups inside `search_along_route` and `plan_day` |
 | `STUDIO_URL` | style tools (the gateway hosting the style API) |
 | `STUDIO_API_KEY` | style publishes only (`snk_` key); reads work without it |
-| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `weather_along_route`, `nearby_stops`, `next_departures`, `camera_incidents`, `set_temporary_closure`, `submit_integration_retro` (falls back to the `STUDIO_*` pair — same gateway) |
+| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `weather_along_route`, `nearby_stops`, `next_departures`, `events_in_area`, `space_weather_now`, `weather_frames`, `camera_incidents`, `set_temporary_closure`, `submit_integration_retro` (falls back to the `STUDIO_*` pair, the same gateway) |
 | `SN_MAP_ISSUES_DIR` | `report_map_issue` review queue |
 | `SN_RETROS_DIR` | `submit_integration_retro` fallback queue when the gateway cannot take it |
 

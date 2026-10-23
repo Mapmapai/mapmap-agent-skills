@@ -272,7 +272,7 @@ helpfully:
 | `PHOTON_URL` | `geocode`, `reverse_geocode`, and the name lookups inside `search_along_route` and `plan_day` |
 | `STUDIO_URL` | style tools (the gateway hosting the style API) |
 | `STUDIO_API_KEY` | style publishes only (`snk_` key); reads work without it |
-| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `weather_along_route`, `nearby_stops`, `next_departures`, `events_in_area`, `space_weather_now`, `weather_frames`, `camera_incidents`, `set_temporary_closure`, `submit_integration_retro` (falls back to the `STUDIO_*` pair — same gateway) |
+| `GATEWAY_URL` / `GATEWAY_API_KEY` | `search_along_route`, `nearby_places`, `cheapest_fuel_along_route`, `cheapest_charging_along_route`, `plan_ev_route`, `check_clearance_on_route`, `match_trace`, `cluster`, `replan_routes`, `submit_optimise_job`, `get_job`, `get_usage`, `weather_along_route`, `nearby_stops`, `next_departures`, `events_in_area`, `space_weather_now`, `weather_frames`, `camera_incidents`, `set_temporary_closure`, `submit_integration_retro` (falls back to the `STUDIO_*` pair, the same gateway) |
 | `SN_MAP_ISSUES_DIR` | `report_map_issue` review queue |
 | `SN_RETROS_DIR` | `submit_integration_retro` fallback queue when the gateway cannot take it |
 

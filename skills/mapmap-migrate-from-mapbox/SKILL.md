@@ -117,10 +117,11 @@ Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,
 
 Custom Mapbox styles: MapLibre reads style-spec v8, but `mapbox://` source
 URLs, Mapbox fonts and sprites must be repointed. The pragmatic path is
-recreating the look as a MapMap theme (19 palette slots + per-layer
-overrides) in [Studio](https://mapmap.ai/studio), or let an agent do it via
+recreating the look as a MapMap theme (named palette slots + per-layer
+overrides, optionally starting from a designed base such as `streets` or
+`midnight`) in [Studio](https://mapmap.ai/studio), or let an agent do it via
 the MCP style tools (`list_style_layers`, `create_style`, `set_palette`,
-`set_layer_paint`).
+`set_layer_paint`, `set_layer_layout`).
 
 ## What you gain in the swap
 

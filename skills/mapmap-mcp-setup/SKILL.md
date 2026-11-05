@@ -5,10 +5,11 @@ description: Connect any MCP client (Claude Code, Claude Desktop, Cursor, Codex,
 
 # MapMap MCP setup
 
-MapMap's MCP server (`sn-mcp`) exposes fifty-five tools (the set grows fast,
+MapMap's MCP server (`sn-mcp`) exposes fifty-six tools (the set grows fast,
 it was eleven in June, so list them live with `tools/list` rather than
-trusting any written count, including this one): routing, along-route search,
-cheapest fuel on a route, forecast weather along a route, England bus stops
+trusting any written count, including this one; every tool with its inputs,
+outputs and a real call is at https://mapmap.ai/docs/mcp-tools): routing,
+along-route search, cheapest fuel on a route, forecast weather along a route, England bus stops
 and timetabled departures, earthquakes, volcano alerts and satellite fire
 detections in an area, space weather and the aurora forecast, weather
 forecast frames for drawing on a map, EV journey planning and charge points, overhead
@@ -35,12 +36,16 @@ https://mcp.mapmap.ai/mcp
 Most of the surface answers there today, including `route`, `matrix`,
 `check_adr_tunnel`, `geocode`, `reverse_geocode`, `nearby_places`,
 `elevation`, `verify_places`, `optimise_routes`, `list_style_layers` and
-`get_style`. Two caveats that do not change: style **publishes**
-(`create_style`, `set_palette`, `set_layer_paint`) are refused on the hosted
-endpoint because publishing signs with a gateway key, and any tool whose
-dataset a given deployment does not carry answers empty or with a clear tool
-error rather than a guess — `cheapest_fuel_along_route` returns no stations on
-a deployment with no fuel-price feed. Don't take this paragraph's word for it:
+`get_style`. Present your own key as `Authorization: Bearer snk_…` and every
+metered call bills to that key rather than running anonymously under fair use.
+Two caveats that do not change: style **publishes** (`create_style`,
+`set_palette`, `set_layer_paint`, `set_layer_layout`) need that key, because
+the hosted endpoint will not sign an anonymous caller's publish with its own
+credential (keyless, they are refused; with your `snk_` key they publish and
+bill to you), and any tool whose dataset a given deployment does not carry
+answers empty or with a clear tool error rather than a guess:
+`cheapest_fuel_along_route` returns no stations on a deployment with no
+fuel-price feed. Don't take this paragraph's word for it:
 call the tool and read the result. Production traffic belongs on the REST API
 (`https://api.mapmap.ai`) with an `snk_` key, or on a self-hosted server.
 
@@ -122,7 +127,7 @@ url = "https://mcp.mapmap.ai/mcp"
 | `list_style_layers` | Palette slots, skeleton layer ids and source-layers a theme can restyle — local, no network |
 | `get_style` | Fetch a hosted style's theme document and compiled style URL (public read) |
 | `check_style_contrast` | WCAG 2.1 contrast audit of a style's palette, across both light and dark variants. Advisory: it never blocks a publish |
-| `create_style` / `set_palette` / `set_layer_paint` | Create and restyle hosted maps — each publish is a new immutable version, metered |
+| `create_style` / `set_palette` / `set_layer_paint` / `set_layer_layout` | Create and restyle hosted maps: a theme, its palette slots, one paint property or one layout property (`line-cap`, `visibility`) on a skeleton layer. Each publish is a new immutable version, metered, and needs your own `snk_` key on the hosted endpoint |
 | `validate_geodata` | Checks whether a dataset's DECLARED coordinate reference system actually describes its own coordinates, before you draw it. Catches the silent failures: swapped lat/lon axes, degrees labelled as metres, Web Mercator mislabelled with a UTM or national-grid code. Pass the declared CRS and a sample of raw coordinates as `{x, y}` in the dataset's OWN units — deliberately not `lon`/`lat`, because whether they are degrees is the question. Returns `consistent` / `suspect` / `impossible`, what is wrong in plain language, and where the numbers actually point read another way. A sanity check, never a reprojection. Local, no network, no quota |
 | `plan_ev_route` | A whole electric-vehicle journey with its charge stops: consumption from a published road-load physics model over the route's own legs, and charge times integrated over the vehicle's charging curve rather than energy divided by peak power. `feasible: false` with a `reason` and the furthest reachable point is an ANSWER, not an error to retry. Always show the returned `coverage_note`. Needs a gateway |
 | `cheapest_charging_along_route` | Charge points along a route, ranked most powerful first, each carrying its engine-measured detour; filter by `connectors`, `min_kw`, `available_only` and `max_detour_minutes`. Operator-published feeds only, so an empty result means "none from these operators within the detour budget", never "there are no chargers here". `say` is ALWAYS present and is the whole answer as one short spoken line with the coverage inside the claim rather than appended to it, so an empty result's line says the emptiness is about those operators and not about the road. Read `say`, and show the `coverage_note`. Needs a gateway |
@@ -285,9 +290,13 @@ Run from the self-host distro (`docker compose --profile mcp up -d`, default
 port 8200, path `/mcp`) or build from source (`cargo build --release -p sn-mcp`).
 Stdio for local clients: `sn-mcp --transport stdio` with the env vars set.
 
-Security notes for self-host: the HTTP `/mcp` endpoint is **unauthenticated** —
-run it inside your trust boundary or add auth at a reverse proxy. In
-production pass `--allowed-host` (repeatable) to defend against DNS rebinding.
+Security notes for self-host: the HTTP `/mcp` endpoint is **unauthenticated
+unless you set `SN_MCP_AUTH_TOKEN`**, in which case every request must carry
+`Authorization: Bearer <token>` or gets a 401. It binds `127.0.0.1:8200` by
+default; widen it with `--listen` only deliberately. Anyone who can reach the
+port can call every keyless tool, so still run it inside your trust boundary.
+In production pass `--allowed-host` (repeatable) to defend against DNS
+rebinding.
 
 ## Beyond MCP
 

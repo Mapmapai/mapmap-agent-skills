@@ -137,9 +137,10 @@ The container `div` needs an explicit CSS height or the map renders blank
 the `setWorkerUrl` call above is mandatory: without it the map loads no tiles
 and logs nothing at all. `InfoWindow` becomes `maplibregl.Popup`. Google's
 cloud-based map styling becomes a MapMap theme
-(19 palette slots + per-layer overrides) built in
+(named palette slots + per-layer overrides) built in
 [Studio](https://mapmap.ai/studio) or via the MCP style tools
-(`list_style_layers`, `create_style`, `set_palette`, `set_layer_paint`).
+(`list_style_layers`, `create_style`, `set_palette`, `set_layer_paint`,
+`set_layer_layout`).
 Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,
 `NavigationCamera`) for routing and turn-by-turn wired in — see the
 `mapmap-web-maps-integration` skill.

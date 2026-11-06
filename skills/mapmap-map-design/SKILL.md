@@ -1,12 +1,13 @@
 ---
 name: mapmap-map-design
-description: Design branded map styles on MapMap — translate a brand ("make maps like airbnb.com") into the 19-slot theme palette, keep labels legible, use layer overrides with restraint, and publish immutable hosted styles via the style API or MCP style tools.
+description: Design branded map styles on MapMap: translate a brand ("make maps like airbnb.com") into the theme palette slots, keep labels legible, use layer overrides with restraint, and publish immutable hosted styles via the style API or MCP style tools.
 ---
 
 # Designing branded maps with MapMap
 
 The MCP style tools (`list_style_layers`, `create_style`, `set_palette`,
-`set_layer_paint`) and the REST style API give you the mechanics. This skill
+`set_layer_paint`, `set_layer_layout`, `check_style_contrast`) and the REST
+style API give you the mechanics. This skill
 is the design judgement: how to turn "make our maps match our brand" into a
 theme that looks intentional rather than recoloured.
 
@@ -23,17 +24,35 @@ packages, so a theme renders identically everywhere.
 }
 ```
 
-## The instrument: 19 palette slots
+## The instrument: the palette slots
 
 `base` is `light` or `dark`; slots you don't set keep sensible defaults, so
-**change as few slots as possible**. Surfaces: `background`, `water`,
-`waterway`, `landcover`, `landuse`, `park`, `ice`, `building`, `aeroway`.
-Lines: `road`, `roadMajor`, `roadMotorway`, `path`, `rail`, `boundary`,
-`boundaryMinor`. Text: `textPrimary`, `textSecondary`, `textHalo`.
-`roadMotorway` inherits `roadMajor` until you set it explicitly, so
-recolouring `roadMajor` alone still moves the motorways. Colours accept
-`#rgb`/`#rrggbb`/`#rrggbbaa` and `rgb()`/`hsl()` forms. Get the catalogue
-programmatically from the `list_style_layers` MCP tool.
+**change as few slots as possible**. The slots, grouped:
+
+- Surfaces: `background`, `water`, `waterway`, `landcover`, `landuse`,
+  `park`, `ice`, `building`, `aeroway`, `pedestrianArea`.
+- Landcover classes: `wood`, `grass`, `wetland`, `farmland`, `sand`, `rock`.
+- Roads and lines: `road`, `roadMajor`, `roadMotorway`, `rail`, `boundary`,
+  `boundaryMinor`.
+- Footpaths: `path`, then `pathFootway`, `pathCycleway`, `pathSteps`,
+  `pathBridleway`, `pathPedestrian`, `pathTrack`.
+- Text: `textPrimary`, `textSecondary`, `textHalo`.
+
+Several slots FOLLOW another until you set them, which is what keeps a small
+palette coherent: `roadMotorway` follows `roadMajor`; the six landcover
+classes follow a mix of `landcover` and another slot; the six `path*` slots
+follow `path`, and `pedestrianArea` follows `path` once you set `path`. So
+recolouring `roadMajor` alone still moves the motorways, and `path` alone
+restyles every footpath. Colours accept `#rgb`/`#rrggbb`/`#rrggbbaa` and
+`rgb()`/`hsl()` forms. The slot list grows, so read the current catalogue
+(names plus light and dark defaults) from the `list_style_layers` MCP tool
+rather than trusting this one; an unknown slot fails validation with the
+accepted names.
+
+`list_style_layers` also lists the first-party named bases (`streets`,
+`midnight`, `navigator-day`, `outdoor`, `dataviz`, `print` and more). Pass
+one as `create_style`'s `base` to start from a designed look instead of a
+blank `light` or `dark`, then change only what the brand needs.
 
 ## The method: brand → palette
 
@@ -56,13 +75,16 @@ programmatically from the `list_style_layers` MCP tool.
    WCAG-ish contrast: ≥ 4.5:1 for `textPrimary` against `background`, and
    keep `textSecondary` clearly above 3:1. If you tint text with the brand
    hue, tint it barely.
-6. **Match the type.** `fonts.regular` must stay on a bundled fontstack —
-   `Noto Sans Regular` (default), `Noto Sans Bold`, `Noto Sans Italic`,
-   `Barlow Regular`, `Fira Sans Regular`, `IBM Plex Sans Regular`,
-   `Inter Regular`, `Lato Regular`, `Montserrat Regular`,
-   `Noto Serif Regular`, `Nunito Regular`, `Open Sans Regular`,
-   `Rubik Regular`, `Source Sans 3 Regular` or `Work Sans Regular` — or
-   labels drop entirely. Pick the closest to the brand's face (geometric
+6. **Match the type.** `fonts.regular` must stay on a fontstack the glyph
+   server hosts: `MapMap Sans Regular` (the default), `Noto Sans Regular`,
+   `Noto Sans Bold`, `Noto Sans Italic`, `Barlow Regular`,
+   `Fira Sans Regular`, `IBM Plex Sans Regular`, `Inter Regular`,
+   `Lato Regular`, `Montserrat Regular`, `Noto Serif Regular`,
+   `Nunito Regular`, `Open Sans Regular`, `Rubik Regular`,
+   `Source Sans 3 Regular` or `Work Sans Regular` (most also have a `Bold`).
+   On the default glyph endpoint a publish naming any other stack is
+   refused with the accepted list; on a custom `glyphs` endpoint nothing
+   checks, and a missing stack drops those labels. Pick the closest to the brand's face (geometric
    brand → Montserrat; neutral product UI → Inter; editorial/serif brand
    → Noto Serif; bolder wayfinding look → Noto Sans Bold).
 
@@ -129,14 +151,16 @@ a `422` that **lists the accepted names** — read it and correct.
   no-store), edit, `POST /styles/{id}` with `{"theme": …}` — the body is a
   wrapper, POSTing a bare theme is a `400`. Versions are immutable; old
   URLs keep rendering. Via MCP: `set_palette` for slot changes,
-  `set_layer_paint` for one paint property.
+  `set_layer_paint` for one paint property, `set_layer_layout` for one
+  layout property (`line-cap`, `visibility`).
 - **Check your work:** render at zoom 5 (country), 12 (city) and 16
   (street) in both a light and dark OS theme; the classic failures are
   labels vanishing at street zoom (halo ≈ text) and motorways screaming at
   country zoom (accent too saturated).
 - Style *reads* are public and unmetered; *publishes* are metered at the
-  Standard class. On hosted MCP, publishes may be key-gated — the REST API
-  with your own key always works.
+  Standard class. On hosted MCP, publishes need your own key
+  (`Authorization: Bearer snk_…`) and bill to it; keyless, they are
+  refused. The REST API with your own key works too.
 - Attribution is structural: themes that try to drop
   "© OpenStreetMap contributors" fail validation. Don't fight it.
 

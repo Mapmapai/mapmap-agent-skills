@@ -7,7 +7,8 @@ description: Build web maps and turn-by-turn navigation with @mapmap/maps: insta
 
 `@mapmap/maps` is a thin TypeScript wrapper over MapLibre GL JS with MapMap
 tiles, styles, routing and navigation UI wired in. ESM only, Node ≥ 18 to
-build. Version 0.13.0. Peers: `maplibre-gl` `>=5.0.0 <7.0.0` (MapLibre GL
+build. Last checked against 0.25.1; `npm view @mapmap/maps version` gives
+the current release. Peers: `maplibre-gl` `>=5.0.0 <7.0.0` (MapLibre GL
 JS 5 and 6; 4.x is not supported), `pmtiles` `>=3.0.0 <5.0.0`. MapLibre 6
 requires **WebGL 2** and has no WebGL 1 fallback, so an environment without
 one gets the `[webgl-unavailable]` diagnostic and no map.
@@ -191,9 +192,9 @@ In a plain HTML page with no bundler, use an import map and a module script.
 Never `<script src=".../dist/maplibre-gl.js">`, which 6.x does not ship:
 
 ```html
-<link href="https://unpkg.com/maplibre-gl@6.9.0/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css" rel="stylesheet" />
 <script type="importmap">
-  { "imports": { "maplibre-gl": "https://unpkg.com/maplibre-gl@6.9.0/dist/maplibre-gl.mjs" } }
+  { "imports": { "maplibre-gl": "https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs" } }
 </script>
 <script type="module">
   import * as maplibregl from "maplibre-gl";

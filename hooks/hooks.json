@@ -1,5 +1,5 @@
 {
-  "description": "Opt-in integration-retro reminder. Disabled by default: the script exits silently unless MAPMAP_RETRO_HOOK=1 is set in your environment. It only ever emits a reminder message — it never sends anything anywhere. See hooks/README.md.",
+  "description": "Opt-in integration-retro reminder. Disabled by default: the script exits silently unless MAPMAP_RETRO_HOOK=1 is set in your environment. It only ever emits a reminder message: it never sends anything anywhere. See hooks/README.md.",
   "hooks": {
     "Stop": [
       {

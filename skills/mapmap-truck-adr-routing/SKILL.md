@@ -1,6 +1,6 @@
 ---
 name: mapmap-truck-adr-routing
-description: Route commercial trucks with dimensional limits and ADR dangerous-goods tunnel restrictions on the MapMap API — parameter reference, worst-case semantics, tunnel-code table, pricing class, and the gotchas that cause 400s.
+description: Route commercial trucks with dimensional limits and ADR dangerous-goods tunnel restrictions on the MapMap API: parameter reference, worst-case semantics, tunnel-code table, pricing class, and the gotchas that cause 400s.
 ---
 
 # Truck & ADR routing with MapMap
@@ -10,12 +10,12 @@ and ADR tunnel-category enforcement **in the costing**, not post-filtered. ADR
 is the European agreement on carriage of dangerous goods by road; tunnel codes
 B–E restrict which tunnels a hazmat load may use.
 
-Base URL: `https://api.mapmap.ai` (or any self-hosted gateway — identical).
+Base URL: `https://api.mapmap.ai` (or any self-hosted gateway, identical).
 Auth: `Authorization: Bearer snk_…` (self-serve via `POST /v1/keys`).
 
 ## Two request shapes
 
-**OSRM-compatible GET** — coordinates are `lon,lat;lon,lat` in the path, truck
+**OSRM-compatible GET**: coordinates are `lon,lat;lon,lat` in the path, truck
 facts as query parameters:
 
 ```sh
@@ -28,7 +28,7 @@ curl -fsS -G "$BASE/route/v1/truck/1.3134,51.1279;-1.8904,52.4862" \
   --data-urlencode "tunnel_code=D"
 ```
 
-**Native POST /route** — JSON body with named `{lat, lon}` fields and a
+**Native POST /route**: JSON body with named `{lat, lon}` fields and a
 top-level `adr` object (`"costing": "truck"` required):
 
 ```json
@@ -52,21 +52,21 @@ route avoids a tunnel.
    `hazmat`, `tunnel_code` etc. on `driving`/`bicycle`/any other profile →
    `400 InvalidValue`.
 2. **Coordinate order.** Bare pairs are always `lon,lat` (OSRM convention).
-   JSON bodies use named fields `{"lat": …, "lon": …}` — never positional.
+   JSON bodies use named fields `{"lat": …, "lon": …}`, never positional.
 3. **Slashed tunnel codes must be URL-encoded.** `B/D` → `B%2FD`
    (curl's `--data-urlencode` handles it).
 4. **Don't fight yourself.** If your own `costing_options.truck` values
    contradict the `adr` profile, the request is rejected with
-   `400 costing-conflict` listing the fields — set truck facts in one place.
+   `400 costing-conflict` listing the fields; set truck facts in one place.
 5. **Defaults.** Unset dimensions default to the EU 96/53/EC articulated
    lorry. Setting `tunnel_code` implies `hazmat=true`.
 
 ## ADR semantics (worst-case by design)
 
-- `hazmat: false` — tunnel matrix does not apply; dimensional limits still do.
-- `hazmat: true` with **no** `tunnel_code` — treated as the most restrictive
+- `hazmat: false`: tunnel matrix does not apply; dimensional limits still do.
+- `hazmat: true` with **no** `tunnel_code`: treated as the most restrictive
   non-quantity code (`B`), because the load's code is unknown.
-- `tunnel_code: "(—)"` — the ADR "no restriction" entry, allowed everywhere.
+- `tunnel_code: "(—)"`: the ADR "no restriction" entry, allowed everywhere.
 - Quantity/tank-conditional codes (`B1000C`, `B/D`, …) are read worst-case:
   the API cannot know net explosive mass or tank carriage.
 
@@ -100,17 +100,17 @@ logic is the `check_adr_tunnel` tool (local, instant). Use it to answer
 Anything truck/ADR bills **premium**: from 1p/call versus 0.05p standard, and
 one premium call draws **20 included calls** from the 50,000/month free tier
 (so all-premium free usage is 2,500 calls/month). The class is detected per
-request — using `costing: "truck"`, a `truck` profile, truck query params, an
+request: using `costing: "truck"`, a `truck` profile, truck query params, an
 `adr` object, `hazmat: true`, or `/adr/check` makes the call premium. Current
 prices: `https://mapmap.ai/pricing.json`. A 4xx-answered request is never
 charged.
 
 ## Errors to dispatch on
 
-OSRM envelope on the compatible endpoint (`{"code": "NoRoute", …}` — always
+OSRM envelope on the compatible endpoint (`{"code": "NoRoute", …}`, which is always
 HTTP 400 for routing errors); RFC 9457 `problem+json` everywhere else.
 `NoRoute`/`NoSegment` after adding truck facts usually means **no legal path
-exists for that vehicle** — try relaxing the dimensions to confirm the
+exists for that vehicle**: try relaxing the dimensions to confirm the
 restriction is the cause. `429` = back off (honour `Retry-After`); `402` =
 there is a way to pay (x402 body). Full envelope:
 https://mapmap.ai/docs/conventions (append `.md` for raw markdown).
@@ -119,9 +119,9 @@ https://mapmap.ai/docs/conventions (append `.md` for raw markdown).
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

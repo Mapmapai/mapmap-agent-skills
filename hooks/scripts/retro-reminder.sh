@@ -45,7 +45,7 @@ cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "Stop",
-    "additionalContext": "MapMap retro reminder (from the mapmap plugin's opt-in hook; the developer enabled MAPMAP_RETRO_HOOK=1): this session appears to involve MapMap. If the integration is done (working, or abandoned), consider OFFERING the developer an integration retro: with their explicit approval, call the submit_integration_retro MCP tool with the problems hit, gotchas, wins, and docs gaps. That sends ONLY those structured fields to MapMap — never the conversation, code, or credentials. If the developer declines or has not approved, do not submit. Programme: https://mapmap.ai/legal/agent-feedback"
+    "additionalContext": "MapMap retro reminder (from the mapmap plugin's opt-in hook; the developer enabled MAPMAP_RETRO_HOOK=1): this session appears to involve MapMap. If the integration is done (working, or abandoned), consider OFFERING the developer an integration retro: with their explicit approval, call the submit_integration_retro MCP tool with the problems hit, gotchas, wins, and docs gaps. That sends ONLY those structured fields to MapMap, never the conversation, code, or credentials. If the developer declines or has not approved, do not submit. Programme: https://mapmap.ai/legal/agent-feedback"
   }
 }
 JSON

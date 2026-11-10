@@ -1,6 +1,6 @@
 ---
 name: mapmap-migrate-from-google-maps
-description: Migrate a Google Maps Platform application to MapMap — Routes/Directions, Distance Matrix, Geocoding and Maps JavaScript API mapping, the key/billing swap, what ports with client changes, what MapMap adds (truck/ADR, self-host) and what has no replacement.
+description: Migrate a Google Maps Platform application to MapMap: Routes/Directions, Distance Matrix, Geocoding and Maps JavaScript API mapping, the key/billing swap, what ports with client changes, what MapMap adds (truck/ADR, self-host) and what has no replacement.
 ---
 
 # Migrating from Google Maps Platform to MapMap
@@ -29,13 +29,13 @@ curl -fsS -X POST "https://api.mapmap.ai/v1/keys" \
 ```
 
 Send as `Authorization: Bearer snk_…` (preferred) or `?api_key=snk_…` for
-URL-only contexts (style URLs, tile URLs) — the analogue of Google's
+URL-only contexts (style URLs, tile URLs), the analogue of Google's
 `?key=`. There is no per-API enablement: one key covers every endpoint.
 Google's per-request field masks (`X-Goog-FieldMask`) have no equivalent
-and are not needed — response size is shaped with `overview`, `steps` and
+and are not needed; response size is shaped with `overview`, `steps` and
 `geometries` instead.
 
-## Coordinate order — the first bug you will hit
+## Coordinate order: the first bug you will hit
 
 Google is `lat,lng` everywhere. MapMap follows OSRM/GeoJSON: **`lon,lat`**
 in URLs, `location` arrays and geocoding results (`POST /route` bodies use
@@ -45,23 +45,23 @@ named `{lat, lon}` keys). Audit every coordinate you pass across.
 
 | Google | MapMap | Notes |
 | --- | --- | --- |
-| Routes API `POST …:computeRoutes` / legacy Directions API | `GET /route/v1/{profile}/{coords}` or `POST /route` | Profiles: `driving`, `truck`, `bus`, `bicycle`, `walking`, `scooter`, `motorcycle`. Response is OSRM-shaped, not Google-shaped — see below |
+| Routes API `POST …:computeRoutes` / legacy Directions API | `GET /route/v1/{profile}/{coords}` or `POST /route` | Profiles: `driving`, `truck`, `bus`, `bicycle`, `walking`, `scooter`, `motorcycle`. Response is OSRM-shaped, not Google-shaped: see below |
 | `avoidTolls` / `avoidHighways` / `avoidFerries` route modifiers | `avoid_tolls`, `avoid_motorways`, `avoid_ferries`, `shortest` | Query params on the GET endpoint; toll/motorway avoidance is motorised-profiles only |
-| Routes API `computeRouteMatrix` / legacy Distance Matrix API | `POST /matrix` | JSON body, `durations` seconds / `distances` metres, `null` = unreachable — no element streaming, one response |
+| Routes API `computeRouteMatrix` / legacy Distance Matrix API | `POST /matrix` | JSON body, `durations` seconds / `distances` metres, `null` = unreachable: no element streaming, one response |
 | Geocoding API (`/geocode/json`) | `GET /geocode`, `GET /geocode/reverse` | Hosted worldwide. GeoJSON `FeatureCollection` in the Photon property shape, nothing like Google's `results[]`; client changes required |
 | Places Autocomplete | `GET /geocode/suggest`, then `GET /geocode/retrieve?id=…` | Search as you type; each suggestion carries `lat`/`lon`, so a pick plots without the retrieve call |
 | Maps Static API | `GET`/`POST https://mapmap.ai/api/static-map` (keyless, rate-limited) or `https://api.mapmap.ai/v1/static-map` (keyed, 15 Standard calls per image) | PNG, WebP or JPEG; camera by `center`+`zoom`, `bbox` or auto-fit; `route=` encoded polyline (`precision=6` default, `precision=5` for `GET /route/v1` output), `geojson=`, `markers=`; up to 1280×1280 px, `@2x` for retina |
-| Maps JavaScript API (`google.maps.Map`) | MapLibre GL via `@mapmap/maps`, or the `style.json` URL | Vector tiles you render, not Google's renderer — see below |
+| Maps JavaScript API (`google.maps.Map`) | MapLibre GL via `@mapmap/maps`, or the `style.json` URL | Vector tiles you render, not Google's renderer: see below |
 | Directions waypoint optimisation / Route Optimization API | `POST /optimise` | Multi-vehicle VRP; truck/ADR constraints shape the plan |
 
-**Response shapes differ — plan adapter work.** Google returns
+**Response shapes differ, plan adapter work.** Google returns
 `routes[].legs[].steps[]` with duration strings like `"1234s"` (Routes API)
 or `{text, value}` objects (legacy), `polyline.encodedPolyline` /
 `overview_polyline`, and HTML-formatted instructions. MapMap's routing
 endpoint answers in the OSRM envelope: `routes[].distance` in metres and
 `duration` in seconds as plain numbers, `geometry` as an encoded polyline
 (`geometries=geojson` for GeoJSON), `legs`/`steps` in OSRM structure with
-machine-readable manoeuvres. Any OSRM client library parses it directly —
+machine-readable manoeuvres. Any OSRM client library parses it directly;
 often the cheapest path is adopting one rather than adapting your Google
 parser. Geocoding likewise: `formatted_address`, `address_components` and
 `geometry.location` do not exist; you get GeoJSON features with Photon-style
@@ -69,7 +69,7 @@ properties. The hosted gateway geocodes worldwide; a self-hosted deployment
 answers `501 geocoding-not-enabled` until it sets `SN_GEOCODE_DIR` or
 `SN_PHOTON_URL`.
 
-## What does NOT port — no replacement exists
+## What does NOT port: no replacement exists
 
 Do not promise parity on these; MapMap has no drop-in substitute:
 
@@ -77,12 +77,12 @@ Do not promise parity on these; MapMap has no drop-in substitute:
   resolves names and addresses from OpenStreetMap, and reverse-geocoded
   POIs carry what OSM holds (opening hours, phone, website, brand), but it
   is not a business-data product.
-- **Street View** — nothing comparable.
-- **Traffic-aware routing** — Google's `TRAFFIC_AWARE` ETAs use live probe
+- **Street View**: nothing comparable.
+- **Traffic-aware routing**: Google's `TRAFFIC_AWARE` ETAs use live probe
   data. MapMap routes on the road network without live traffic.
 
 If your product depends on any of these, keep that Google surface and
-migrate the rest — the two APIs coexist fine.
+migrate the rest; the two APIs coexist fine.
 
 ## Map rendering: google.maps.Map → MapLibre
 
@@ -142,22 +142,22 @@ cloud-based map styling becomes a MapMap theme
 (`list_style_layers`, `create_style`, `set_palette`, `set_layer_paint`,
 `set_layer_layout`).
 Or use `@mapmap/maps` (`createMap`, `RouteLayer`, `GuidanceBanner`,
-`NavigationCamera`) for routing and turn-by-turn wired in — see the
+`NavigationCamera`) for routing and turn-by-turn wired in; see the
 `mapmap-web-maps-integration` skill.
 
 Attribution changes shape: Google's logo and ToS requirements go away, but
 "© OpenStreetMap contributors" (linked to openstreetmap.org/copyright) is
-required on anything you render or republish — compiled MapMap styles carry
+required on anything you render or republish; compiled MapMap styles carry
 it structurally and reject themes that try to drop it.
 
 ## What you gain in the swap
 
 - **Truck & ADR routing**: dimensional limits and dangerous-goods tunnel
-  codes enforced in costing — no Google Routes equivalent (see the
+  codes enforced in costing, no Google Routes equivalent (see the
   `mapmap-truck-adr-routing` skill).
 - **Self-host**: the identical stack (gateway, engine, geocoder, MCP
   server) from one Docker Compose file, with signed offline territory
-  packages — impossible with Google.
+  packages, impossible with Google.
 - **Machine surface**: `/llms.txt`, `/openapi.json`, `/pricing.json`,
   one-call keys, x402 machine payments, MCP at `https://mcp.mapmap.ai/mcp`.
 
@@ -166,7 +166,7 @@ it structurally and reject themes that try to drop it.
 Google bills per SKU per request (and per map load) against a card, with
 free monthly credit. MapMap has two price classes detected per request:
 standard (car/bike/pedestrian routing, matrix, isochrone, matching,
-geocoding, tiles — from 0.05p/call) and premium (anything truck/ADR — from
+geocoding, tiles: from 0.05p/call) and premium (anything truck/ADR: from
 1p/call, drawing 20 included calls from the free tier). Prepaid credit
 only: no credit means `402`/`429`, never surprise billing. A 4xx-answered
 request is never charged. Machine-readable:
@@ -180,9 +180,9 @@ https://mapmap.ai/docs/conventions.
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

@@ -17,7 +17,7 @@ one gets the `[webgl-unavailable]` diagnostic and no map.
 npm install @mapmap/maps maplibre-gl pmtiles
 ```
 
-You need an `snk_` API key — issue one card-free:
+You need an `snk_` API key; issue one card-free:
 `POST https://api.mapmap.ai/v1/keys {"email": "...", "accept_tos": true}`.
 
 ## The three gotchas that make maps silently blank
@@ -62,7 +62,7 @@ const map = createMap({
   container: "map",
   apiKey: "snk_...",
   style: "light",            // "light" | "dark" | Studio theme | style URL
-  // baseUrl defaults to https://api.mapmap.ai — set it for self-host
+  // baseUrl defaults to https://api.mapmap.ai; set it for self-host
 });
 await map.whenReady();
 
@@ -99,7 +99,7 @@ banner.update(steps[0]?.banners[0] ?? null);
 if (steps[0]?.voice[0]) speak(steps[0].voice[0], { lang: "en-GB" });
 ```
 
-Each step's `voice` array is ordered by descending trigger distance — speak
+Each step's `voice` array is ordered by descending trigger distance: speak
 each instruction once as its distance is crossed; **de-duplication is your
 responsibility**.
 
@@ -119,7 +119,7 @@ navigator.geolocation.watchPosition(({ coords }) =>
   idle (`autoRecentreMs: 0` disables; call `resume()` manually).
 - `overview(route.geometry)` fits the route top-down; `resume()` returns to
   the chase cam.
-- **Globe projection is unsupported** — `NavigationCamera.isSupported(map)`
+- **Globe projection is unsupported**: `NavigationCamera.isSupported(map)`
   returns `false`; switch the map to mercator before navigating.
 
 ## Vehicle avatars (`@mapmap/maps/avatars`)
@@ -210,14 +210,14 @@ Standard class.
 
 - **Attribution is structural**: compiled styles carry
   "© OpenStreetMap contributors" and the SDK renders it non-removably. Never
-  attempt to strip it — theme validation rejects the attempt anyway.
+  attempt to strip it; theme validation rejects the attempt anyway.
 - **3D buildings on mobile**: `buildings_3d` is web-safe, but MapLibre Native
-  has prohibitive fill-extrusion memory use at street zooms — never enable it
+  has prohibitive fill-extrusion memory use at street zooms; never enable it
   in native navigation views (the native SDKs ship `styleForNavigation()` to
   strip it).
 - Metering per monthly active user: send an opaque `X-MapMap-User` header
   (hash an install id, 8–128 printable ASCII, never PII) if you licence per
-  MAU. Fail-open — billing never blocks end users.
+  MAU. Fail-open: billing never blocks end users.
 
 Full reference: https://mapmap.ai/docs/sdks and /docs/maps (append `.md` for
 raw markdown).
@@ -226,9 +226,9 @@ raw markdown).
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

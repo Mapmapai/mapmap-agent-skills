@@ -1,6 +1,6 @@
 {
   "name": "mapmap",
-  "description": "MapMap plugins for AI coding agents — navigation, routing, truck/ADR compliance, map design, fleet optimisation, and x402 agent payments.",
+  "description": "MapMap plugins for AI coding agents: navigation, routing, truck/ADR compliance, map design, fleet optimisation, and x402 agent payments.",
   "owner": {
     "name": "MapMap",
     "email": "hello@mapmap.ai",
@@ -10,8 +10,8 @@
     {
       "name": "mapmap",
       "source": "./",
-      "description": "MapMap navigation platform for AI agents — 11 integration skills, the hosted MapMap MCP server, and an opt-in integration-retro reminder hook (disabled by default).",
-      "version": "0.1.3",
+      "description": "MapMap navigation platform for AI agents: 11 integration skills, the hosted MapMap MCP server, and an opt-in integration-retro reminder hook (disabled by default).",
+      "version": "0.1.4",
       "author": {
         "name": "MapMap"
       },

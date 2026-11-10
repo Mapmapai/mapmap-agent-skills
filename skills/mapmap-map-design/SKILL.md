@@ -61,13 +61,13 @@ blank `light` or `dark`, then change only what the brand needs.
    `base: "dark"`. The base does 80% of the work.
 2. **Background carries the brand's neutral.** Set `background` to the
    brand's page background (or a 2–4% tinted version of it). Keep
-   `landuse`/`landcover` within a few percent of lightness of `background` —
+   `landuse`/`landcover` within a few percent of lightness of `background`:
    they are texture, not statements.
 3. **Desaturate the brand's colours for surfaces.** Water, parks and
    landcover read best at roughly 20–40% of the brand hue's saturation.
    Full-saturation brand colour on water looks like a toy.
 4. **Spend the accent in ONE place.** The brand's accent belongs on
-   `roadMajor` (subtly, blended toward the base's default) or — better — on
+   `roadMajor` (subtly, blended toward the base's default) or, better, on
    the route line and navigation UI, not on the base map at all. A base map
    is a stage; if everything is on-brand-bright, nothing on top of it reads.
 5. **Never let text approach its background.** Keep `textPrimary` dark (or
@@ -125,7 +125,7 @@ whitespace, one coral accent used sparingly. As a theme:
 
 Note where the coral went: **the route line, not the map**. The base stays
 calm; the brand shows in what moves. The `layers` block quiets minor
-boundaries and holds POI labels back until zoom 14 — restraint reads as
+boundaries and holds POI labels back until zoom 14; restraint reads as
 polish.
 
 ## Layer overrides, used sparingly
@@ -137,10 +137,10 @@ Per-layer overrides target the skeleton layer ids (`background`,
 `place-labels`) with `visible`, `paint`/`layout` merges, `filter` and
 `minzoom`/`maxzoom`. Typical legitimate uses: hide `boundary-minor`, thin
 `road-minor` (`{"paint": {"line-width": 2}}`), delay `poi-labels`. If you
-are overriding more than ~4 layers, the palette is probably wrong — fix it
+are overriding more than ~4 layers, the palette is probably wrong; fix it
 there first. `buildings_3d: true` adds extruded buildings on web (never in
 native navigation views). An unknown slot or layer id fails validation with
-a `422` that **lists the accepted names** — read it and correct.
+a `422` that **lists the accepted names**: read it and correct.
 
 ## Publish and iterate
 
@@ -148,7 +148,7 @@ a `422` that **lists the accepted names** — read it and correct.
   `snk_` key → `201` with an immutable versioned `style_url` you can drop
   into MapLibre or `@mapmap/maps`. Via MCP: `create_style`.
 - **Iterate read-modify-write:** fetch `GET /styles/{id}/theme` (served
-  no-store), edit, `POST /styles/{id}` with `{"theme": …}` — the body is a
+  no-store), edit, `POST /styles/{id}` with `{"theme": …}`; the body is a
   wrapper, POSTing a bare theme is a `400`. Versions are immutable; old
   URLs keep rendering. Via MCP: `set_palette` for slot changes,
   `set_layer_paint` for one paint property, `set_layer_layout` for one
@@ -167,7 +167,7 @@ a `422` that **lists the accepted names** — read it and correct.
 ## Navigation design travels with the theme
 
 The `extra.nav` block (route line, position puck, banner, drive camera)
-is ignored by the style compiler but stored and served with the theme —
+is ignored by the style compiler but stored and served with the theme;
 `@mapmap/maps` reads it via `map.navDesign` and styles the whole
 turn-by-turn UI to match. Design it with the same accent discipline: puck
 and route in the brand accent, banner in the brand's surface colours.
@@ -179,9 +179,9 @@ markdown); tools: https://mapmap.ai/docs/mcp.
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

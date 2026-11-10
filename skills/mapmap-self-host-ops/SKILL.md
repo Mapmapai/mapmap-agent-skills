@@ -1,6 +1,6 @@
 ---
 name: mapmap-self-host-ops
-description: Run the MapMap stack on your own infrastructure — Docker Compose distro, first boot, admin API keys, compose profiles (geocoding, MCP), territory packages, trust anchor, and production hardening notes.
+description: Run the MapMap stack on your own infrastructure: Docker Compose distro, first boot, admin API keys, compose profiles (geocoding, MCP), territory packages, trust anchor, and production hardening notes.
 ---
 
 # Self-hosting MapMap
@@ -23,7 +23,7 @@ checkout ships the `distro/` stack and full production guides.
 ```sh
 cd distro
 cp .env.example .env
-# Admin token protects /admin/* — compose refuses to start without it
+# Admin token protects /admin/*: compose refuses to start without it
 sed -i "s/^SN_ADMIN_TOKEN=$/SN_ADMIN_TOKEN=$(openssl rand -hex 32)/" .env
 # Simplest first run: build tiles straight from any Geofabrik OSM extract
 echo 'VALHALLA_TILE_URLS=https://download.geofabrik.de/europe/united-kingdom-latest.osm.pbf' >> .env
@@ -33,7 +33,7 @@ docker compose logs -f valhalla   # first boot builds tiles: ~30–60 min for th
 ```
 
 **Expected, not broken:** while tiles build, `docker compose ps` shows the
-gateway stuck in `Created` — it waits on the routing engine's healthcheck.
+gateway stuck in `Created`: it waits on the routing engine's healthcheck.
 You're up when `curl -fsS http://localhost:8080/health` succeeds.
 
 ## Issue keys
@@ -48,7 +48,7 @@ curl -fsS -X POST http://localhost:8080/admin/keys \
   -d '{"name": "fleet-ops-dev", "monthly_quota": 100000, "rate_per_min": 60}'
 ```
 
-The `key` field is shown **once** — only its BLAKE3 hash is persisted. Keys,
+The `key` field is shown **once**; only its BLAKE3 hash is persisted. Keys,
 quotas and usage live in the `gateway_data` sqlite volume: **back it up**.
 Alternatively let users self-serve keys via `POST /v1/keys` (same flow as the
 hosted gateway). A public unauthenticated demo lane exists behind
@@ -58,7 +58,7 @@ only, never metered).
 ## Optional services (compose profiles)
 
 ```sh
-docker compose --profile geocoding up -d photon   # /geocode — seed photon_data first
+docker compose --profile geocoding up -d photon   # /geocode; seed photon_data first
 docker compose --profile mcp up -d mcp            # agents at http://<host>:8200/mcp
 ```
 
@@ -78,17 +78,17 @@ Key environment switches on the gateway:
 ## Production notes
 
 - **TLS**: put a reverse proxy in front of port 8080 before exposing beyond
-  localhost — API keys travel in the `Authorization` header. If the proxy
+  localhost: API keys travel in the `Authorization` header. If the proxy
   sets `SN_TRUST_PROXY`, make it overwrite (not append) `X-Forwarded-For`
   with the real peer address, or signup rate limits can be spoofed.
-- **Tiles**: prefer signed territory packages over the OSM bootstrap build —
+- **Tiles**: prefer signed territory packages over the OSM bootstrap build,
   and clear `VALHALLA_TILE_URLS` from `.env` once you do, so a container
   recreate never triggers an accidental rebuild.
 - **Trust anchor**: territory packages are ed25519-signed. Self-host
   operators generate their own key pair (`snfactory keygen`) and mobile apps
-  pin the 64-hex verifying key at build time — never fetch it over the same
+  pin the 64-hex verifying key at build time, never fetch it over the same
   channel as the packages it validates.
-- **MCP security**: the HTTP `/mcp` endpoint is unauthenticated — keep it
+- **MCP security**: the HTTP `/mcp` endpoint is unauthenticated; keep it
   inside the trust boundary or gate it at the proxy; pass `--allowed-host`
   against DNS rebinding.
 - **Back up** the `gateway_data` volume (keys, quotas, usage).
@@ -99,7 +99,7 @@ Key environment switches on the gateway:
 Everything takes a base URL: the web SDK accepts `baseUrl` in map options,
 curl examples export `BASE`, compiled styles can repoint `glyphs` to your
 gateway's `/fonts` route. Your deployment serves its own `/openapi.json`
-(authoritative contract) and `/llms.txt` — same envelope, same keys, same
+(authoritative contract) and `/llms.txt`: same envelope, same keys, same
 error shapes as the hosted gateway.
 
 ## Procurement pack
@@ -116,9 +116,9 @@ for raw markdown).
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

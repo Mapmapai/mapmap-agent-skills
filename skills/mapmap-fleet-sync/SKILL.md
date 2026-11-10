@@ -1,6 +1,6 @@
 ---
 name: mapmap-fleet-sync
-description: Run the morning-dispatch loop between a fleet's existing telematics platform and MapMap — read today's stops and vehicles from Samsara/Webfleet/Geotab, resolve addresses with structured geocoding, build the /optimise request, push the ordered route back or export CSV/GPX, and follow it live with the stateless /route/progress endpoint. No hosted connector; MapMap never receives or stores vehicle positions.
+description: Run the morning-dispatch loop between a fleet's existing telematics platform and MapMap: read today's stops and vehicles from Samsara/Webfleet/Geotab, resolve addresses with structured geocoding, build the /optimise request, push the ordered route back or export CSV/GPX, and follow it live with the stateless /route/progress endpoint. No hosted connector; MapMap never receives or stores vehicle positions.
 ---
 
 # Fleet sync: MapMap on top of an existing telematics platform
@@ -16,7 +16,7 @@ one.** You are writing a loop that runs inside the customer's own estate:
 it reads their telematics API with their credentials, calls MapMap for the
 plan, and writes back to their telematics API.
 
-Base URL: `https://api.mapmap.ai` (or any self-hosted gateway — identical).
+Base URL: `https://api.mapmap.ai` (or any self-hosted gateway, identical).
 Auth: `Authorization: Bearer snk_…`. Locations are `{"lat": …, "lon": …}`.
 Durations seconds, distances metres.
 
@@ -32,12 +32,12 @@ every
 2 min  check     where is each vehicle vs its plan   → POST /route/progress  (stateless)
 ```
 
-## Privacy stance — say this out loud, do not bury it
+## Privacy stance: say this out loud, do not bury it
 
 - **MapMap never receives or stores vehicle positions.** The only endpoint
   that takes one is `POST /route/progress`, and it is stateless by
   construction: the plan and the position are read from the request,
-  answered, and discarded — never written to a database, a disk or a log.
+  answered, and discarded, never written to a database, a disk or a log.
   Every response restates the contract (`"stateless": true` plus a
   `privacy` string) so an auditor reading one captured body can see it.
 - **Position history stays in the telematics platform**, which was already
@@ -75,7 +75,7 @@ Samsara's reference at `developers.samsara.com`, the WEBFLEET.connect
 Reference Guide **1.75.0** (revision dated 4 June 2026), and the MyGeotab
 reference at `developers.geotab.com`. These are third-party APIs on their
 own release schedules. **Re-read the vendor's current docs before shipping,
-and never generate a vendor call from memory — including from this file.**
+and never generate a vendor call from memory, including from this file.**
 
 | | Samsara | Webfleet | Geotab (MyGeotab) |
 | --- | --- | --- | --- |
@@ -85,7 +85,7 @@ and never generate a vendor call from memory — including from this file.**
 | Vehicles | `GET /fleet/vehicles` → `data[].id`, `.name` | `showObjectReportExtern` → `objectno`, `objectname` | `Get` `typeName:"Device"` |
 | Positions | `GET /fleet/vehicles/stats?types=gps` | `showObjectReportExtern` → `latitude_mdeg`, `longitude_mdeg` | `Get` `typeName:"DeviceStatusInfo"` |
 | Today's stops | `GET /fleet/routes?startTime=&endTime=` → `stops[]` | `showOrderReportExtern` | `Get` `typeName:"Route"` → `routePlanItemCollection` |
-| Stop coordinates | ⚠️ only on `singleUseLocation`; else join `GET /addresses` | ✅ inline, integer **micro-degrees** | ⚠️ none — resolve `zone` → `Zone.points` |
+| Stop coordinates | ⚠️ only on `singleUseLocation`; else join `GET /addresses` | ✅ inline, integer **micro-degrees** | ⚠️ none: resolve `zone` → `Zone.points` |
 | Service duration | ❌ infer from scheduled arrival → departure | ❌ no field | ✅ `expectedStopDuration` (ms) |
 | Write route | `POST` / `PATCH /fleet/routes` | `sendDestinationOrderExtern` + repeated `wp` | `Add`/`Set` `typeName:"Route"`, and/or `Add` `TextMessage` |
 | Pagination | `after` + `pagination.hasNextPage`, `limit` max 512 | none (whole-report dumps) | `resultsLimit`, or `GetFeed` `fromVersion` |
@@ -95,12 +95,12 @@ Three auth traps that each cost a day if met cold:
 
 1. **Webfleet: credentials in the URL are gone.** The 1.75.0 guide says the
    old `&username=…&password=…` query form was to be removed at the end of
-   June 2026 — a date now passed. Use HTTP Basic for the user; keep
+   June 2026, a date now passed. Use HTTP Basic for the user; keep
    `account` and `apikey` as query parameters.
 2. **Geotab: honour `path` in the authenticate response.** It is either a
    server URL or the literal `"ThisServer"`. If a URL, every later call
    goes to *that* server.
-3. **Samsara has no CORS.** Server-side only — which is right anyway: no
+3. **Samsara has no CORS.** Server-side only, which is right anyway: no
    telematics credential should reach a browser.
 
 ```sh
@@ -122,7 +122,7 @@ curl -fsS -u "$WF_USER:$WF_PASSWORD" -G "https://csv.webfleet.com/extern" \
 Three data traps behind that table:
 
 - **Samsara stops usually carry no coordinates.** For an address-book stop,
-  `stops[].address` is `{id, name, externalIds}` only — join to
+  `stops[].address` is `{id, name, externalIds}` only; join to
   `GET /addresses`, or geocode `formattedAddress`. Useful stop fields:
   `id`, `name`, `scheduledArrivalTime`, `scheduledDepartureTime`,
   `appointmentWindows[].{startTime, endTime}`, `notes`, `sequenceNumber`.
@@ -139,7 +139,7 @@ Three data traps behind that table:
 **Only Geotab carries an explicit service duration.** On Samsara it is the
 scheduled arrival-to-departure gap; on Webfleet there is no such field
 (`arrivaltolerance` is a lateness tolerance, not dwell). Take `service_s`
-from your own per-job-type table rather than defaulting it to zero — a zero
+from your own per-job-type table rather than defaulting it to zero: a zero
 makes every ETA after the first optimistic, and the error compounds.
 
 ## Step 2: resolve stops to coordinates you can defend
@@ -169,16 +169,16 @@ vehicle in the wrong town.
 For a whole depot, `POST /geocode/batch` takes up to **1,000** queries and
 answers in order; a failing query carries a `problem` object instead of
 `features` and takes only itself down. Billing is one Standard call per
-query — a batch is a delivery mechanism, not a discount. **Cache
+query: a batch is a delivery mechanism, not a discount. **Cache
 coordinates against the customer record in their system**: a delivery
 address does not move between Tuesdays.
 
 Before planning, the `verify_places` MCP tool answers "does this day hold
-together" — pass stops as `claims` with `sequence` and `claimed_time` and
+together": pass stops as `claims` with `sequence` and `claimed_time` and
 it checks legs for feasibility through `matrix`. Read its contract:
 verdicts are `verified`, `contradicted` or `unverified`, never a boolean,
 and **it never asserts that a named business does not exist or has
-closed** — a missing match is always `unverified`. Treating `unverified` as
+closed**: a missing match is always `unverified`. Treating `unverified` as
 "this address is fake" will have the dispatcher ringing real customers.
 Max 20 claims per request.
 
@@ -200,7 +200,7 @@ integer arrays, and a job requiring a skill its vehicle lacks is never
 assigned to it:
 
 ```js
-// One place. Never derived at runtime from vendor tag text — a renamed tag
+// One place. Never derived at runtime from vendor tag text: a renamed tag
 // would silently drop a constraint rather than fail loudly.
 const SKILL = { TAIL_LIFT: 1, ADR: 2, FRIDGE: 3, CPC_DRIVER: 4 };
 ```
@@ -217,18 +217,18 @@ dispatcher can act on. Only hard windows become `time_windows`.
 `eu_drivers_hours: true` to auto-generate a Regulation (EC) No 561/2006
 break (45 min after at most 4.5 h driving) for every vehicle with a
 `time_window` and no explicit breaks. It is a **single-shift
-approximation** — split breaks, daily and weekly rest are not modelled, so
+approximation**: split breaks, daily and weekly rest are not modelled, so
 post-validate against the tachograph system. `max_travel_time` is the daily
 *driving* limit in seconds and excludes service, setup and waiting.
 
 **Read `unassigned` before anything else.** Unassignable tasks are never
-silently dropped — each appears as `{id, type, location}` — and a
+silently dropped (each appears as `{id, type, location}`), and a
 write-back that ignores the array delivers a short day to a driver and a
 missed SLA to a customer.
 
 Limits: **200 unique locations** per request (`422
 urn:sn-gateway:problem:optimisation-too-large`, body carries
-`max_locations` — split by depot or round *before* submitting) and a
+`max_locations`; split by depot or round *before* submitting) and a
 **1,500 km** matrix span for car and truck. A duration in the millions of
 seconds means a pair is unreachable under the chosen costing: the matrix
 cell gets a sentinel cost, not an error. For a truck fleet add
@@ -237,7 +237,7 @@ cell gets a sentinel cost, not an error. For a truck fleet add
 
 ## Step 4: geometry for the driver
 
-`/optimise` returns visit order, not geometry — `options.g` is unsupported
+`/optimise` returns visit order, not geometry; `options.g` is unsupported
 and `{"g": true}` is a `400`. Fetch each vehicle's line with one
 `POST /route` over its ordered stops, with `"landmarks": true` so eligible
 manoeuvres gain a `landmark_instruction` anchored to a recognisable place.
@@ -247,14 +247,14 @@ response's `landmarks` block reports how many manoeuvres were annotated, so
 
 **Keep the polyline.** `POST /route` returns geometry at precision 6, and
 that string is what `/route/progress` wants as `geometry_polyline6` in step
-6 — the cheap path, because the plan is then never recomputed.
+6, the cheap path, because the plan is then never recomputed.
 
 For an electric round, `POST /v1/ev/plan` works out charge stops over the
 real legs against the vehicle's own charging curve and answers
 `feasible: false` with a named cause rather than inventing a plan;
 `POST /v1/charging/along` ranks charge points along an existing route. Both
 are `501` without a charge-point directory, and both return a
-`charging_attribution` block naming the operators covered — display it,
+`charging_attribution` block naming the operators covered; display it,
 because an empty result means "none from these operators", never "no
 chargers here".
 
@@ -269,14 +269,14 @@ chargers here".
 | Write limit | 100 req/min | 300 requests / 30 min | 200 req/min |
 
 **Samsara.** `POST /fleet/routes` takes `name`, at least two `stops`, and
-**one** of `driverId` or `vehicleId` — never both. Each stop takes either
+**one** of `driverId` or `vehicleId`, never both. Each stop takes either
 an `addressId` or a `singleUseLocation` of
 `{latitude, longitude, address, radiusMeters}`, plus scheduled times,
 `appointmentWindows` and `sequenceNumber`. ⚠️ **`PATCH` is a JSON merge
 patch, so arrays REPLACE rather than append**: send the complete new
 `stops` array including each surviving stop's `id`, or the omitted ones are
 deleted. Samsara also warns that modifying stops whose scheduled arrival
-has already passed is unpredictable — write the whole day before the
+has already passed is unpredictable: write the whole day before the
 vehicles leave.
 
 **Webfleet.** `sendDestinationOrderExtern` sends an order with target
@@ -289,7 +289,7 @@ wp=<latitude>,<longitude>,[description],[notify],[visible]
 
 Integer micro-degrees again. Capacity depends on the device generation (the
 1.75.0 guide lists up to 1,000 waypoints per order on some TomTom PRO
-models, 250 on others) — check the hardware before promising a 60-stop
+models, 250 on others); check the hardware before promising a 60-stop
 round in one order, and use `POST` once you have more than a handful of
 `wp` values. ⚠️ **Every Webfleet order action is asynchronous**: a
 successful response means Webfleet accepted the order, not that it reached
@@ -298,16 +298,16 @@ order sent with `sendOrderExtern` (text only, no destination) is **not
 shown in the Webfleet UI**.
 
 **Geotab.** `Add` `typeName: "Route"` writes the plan as a
-`routePlanItemCollection` of items carrying `sequence` and a `zone` — ⚠️
+`routePlanItemCollection` of items carrying `sequence` and a `zone`; ⚠️
 **the stops must exist as `Zone` entities first**. To put waypoints in
 front of the driver, `Add` a series of `TextMessage` entities whose
 `messageContent` is `LocationContent` (`latitude`, `longitude`, `address`,
 `message`), sharing a `routeId`. ⚠️ **`isDirectionToVehicle` must be
-`true`** — `false` means the message came *from* the vehicle, and getting
+`true`**: `false` means the message came *from* the vehicle, and getting
 it the wrong way round is a silent no-op. `LocationContent.id` is
 deprecated in favour of `routeId`.
 
-**Where there is no write API**, export instead — and build this path even
+**Where there is no write API**, export instead, and build this path even
 where one exists, because it is the fallback for the morning the telematics
 API is down and the vehicles still have to leave. **CSV** for a dispatcher
 or driver: one row per stop with visit order, arrival time, address,
@@ -362,15 +362,15 @@ as off route**. With a trace (up to **100** fixes, oldest first, ending at
 `current_position`) it is `map_matched`: the trace goes through the
 engine's matcher and the last matched point is projected, so `off_route_m`
 is a road-to-plan distance. Alert only on `map_matched`. The telematics
-platform already holds a rolling trace — send the last few fixes.
+platform already holds a rolling trace: send the last few fixes.
 
 **Three numbers, deliberately not merged.** `progress` is geometric against
 the supplied plan and never calls the engine. `remaining` is the engine's
-answer *from where the vehicle actually is* — a fresh search, so on an
+answer *from where the vehicle actually is*: a fresh search, so on an
 off-route vehicle it already prices getting back and can legitimately
 differ from `progress.plan_remaining_m`; a large gap between the two *is*
 the signal. `eta` is that duration as a wall-clock arrival against the
-**gateway's** UTC clock with per-leg traffic provenance attached — prefer
+**gateway's** UTC clock with per-leg traffic provenance attached; prefer
 `remaining.duration_s` when clock skew matters. Within **25 m** of the
 plan's final point no remaining leg is computed: `arrived: true`,
 `remaining.method: "arrival_radius"`.
@@ -380,7 +380,7 @@ plan's final point no remaining leg is computed: `arrived: true`,
 at most three internal engine calls and no matrix fan-out. Do the
 arithmetic before choosing a cadence: 60 vehicles polled every two minutes
 over a nine-hour shift is 270 polls each, 16,200 requests, **81,000 calls a
-day**. Poll on the dispatcher's cadence, not the tracker's — a screen does
+day**. Poll on the dispatcher's cadence, not the tracker's; a screen does
 not need a fresh ETA more than once or twice a minute, and the ETA between
 polls is a straight-line interpolation you can do locally for free.
 
@@ -406,7 +406,7 @@ polls is a straight-line interpolation you can do locally for free.
 | --- | --- | --- |
 | A stop lands in `unassigned` for no obvious reason | A soft window modelled as hard `time_windows`, or a `skills` value no vehicle carries | Re-read the record's window semantics; check the skill integer exists on a vehicle |
 | `422` with `max_locations` in the body | Over the 200-unique-location cap | Split by depot or round before submitting |
-| A duration in the millions of seconds | A pair unreachable under the chosen costing — sentinel matrix cost, not an error | Check coordinates and truck constraints for that pair |
+| A duration in the millions of seconds | A pair unreachable under the chosen costing: sentinel matrix cost, not an error | Check coordinates and truck constraints for that pair |
 | `off_route` alerts on stationary vehicles | Polling without `recent_trace`, so `method` is `projection` | Send the trace; alert only on `map_matched` |
 | `503 optimisation-not-enabled` (self-host) | The VROOM sidecar is not configured | The operator sets `SN_VROOM_URL`; retrying will not help |
 | Every ETA after the first runs late | `service_s` defaulted to zero because the vendor has no dwell field | Take service time from your own per-job-type table |
@@ -414,7 +414,7 @@ polls is a straight-line interpolation you can do locally for free.
 
 Errors are RFC 9457 `problem+json` and a `4xx`-answered request is never
 charged. Your input's fault is `400` (do not retry); the solver's fault is
-`502 upstream-error` (transient — retry); `429` bodies carry `retry_after`.
+`502 upstream-error` (transient, retry); `429` bodies carry `retry_after`.
 Feature-detect the `501` on the EV and charging endpoints rather than
 assuming a deployment has that data.
 
@@ -426,16 +426,16 @@ step 4, `matrix` for your own assignment logic, `plan_ev_route` for an
 electric round. For a single vehicle's day two composition tools are
 usually enough:
 
-- **`order_stops`** — one run's stops in the best visiting order: `start`
+- **`order_stops`**: one run's stops in the best visiting order: `start`
   plus 1–100 stops of `{location, label?, service_s?}`, an `end` or
   `round_trip: true`, costing `auto` or `truck`. Returns `ordered` entries
   with `order`, `stop_index`, `label`, `location` and `arrival_s`. The
   `label` round-trips, so it is the natural carrier for the telematics stop
   id.
-- **`plan_day`** — a whole itinerary as one navigable route: `start` and
+- **`plan_day`**: a whole itinerary as one navigable route: `start` and
   1–20 `stops` (a `location` or a free-text `name` to geocode, plus
   `dwell_minutes`), optional `depart_at` (RFC 3339), `optimise: true`,
-  `return_to_start`. Geocoded names carry a `resolution` — **when
+  `return_to_start`. Geocoded names carry a `resolution`; **when
   `ambiguous` is true, read `alternatives` and re-run with an explicit
   `location` rather than trusting the guess.**
 
@@ -447,9 +447,9 @@ Units, errors and quotas: https://mapmap.ai/docs/conventions.
 
 If the developer has approved sending feedback to MapMap, call the
 `submit_integration_retro` MCP tool (or `POST
-https://api.mapmap.ai/v1/feedback` with the API key) once — after the
+https://api.mapmap.ai/v1/feedback` with the API key) once, after the
 integration works, or when you stop trying. Include the problems you hit,
 gotchas, what went well, and any docs gaps. This sends ONLY those
-structured fields to MapMap — never the conversation, code, or
+structured fields to MapMap, never the conversation, code, or
 credentials. If the developer hasn't said yes, ask once or skip.
 Programme details: https://mapmap.ai/legal/agent-feedback

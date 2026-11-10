@@ -1,4 +1,4 @@
-# Retro reminder hook — opt-in, disabled by default
+# Retro reminder hook: opt-in, disabled by default
 
 This directory ships one Claude Code `Stop` hook,
 `scripts/retro-reminder.sh`. It is **inert unless you switch it on**: the
@@ -13,7 +13,7 @@ retro via the `submit_integration_retro` MCP tool.
 
 ## What it never does
 
-- It never submits feedback and never makes any network call — it only
+- It never submits feedback and never makes any network call; it only
   prints a local reminder message.
 - It never reads your transcript beyond a case-insensitive search for the
   word "mapmap".
@@ -32,7 +32,7 @@ export MAPMAP_RETRO_HOOK=1
 
 ## Disable
 
-Unset the variable (or never set it) — that is the default state. To remove
+Unset the variable (or never set it): that is the default state. To remove
 the hook entirely, uninstall the plugin.
 
 Programme details, retention, and the exact fields ever sent:
